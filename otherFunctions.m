@@ -15,7 +15,6 @@
 + (NSString *)nameOfUPnPDevice: (id)device
 {
     BasicUPnPDevice *upnpDevice = device;
-    
     return upnpDevice.friendlyName;
 }
 
@@ -23,6 +22,54 @@
 + (NSString *)floatIntoString: (float)value
 {
     return [NSString stringWithFormat:@"%f", value];
+}
+
+// return available actions
++ (NSArray *)availableActionsForDevice: (id)device forUrn: (enum urnServiceNames)urn withNeededActions: (NSArray *)neededActions
+{
+    return [self compareActions:[self listActionsForDevice:device forUrn:urn] withNeededActions:neededActions];
+}
+
+// returns all actions for one device
++ (NSArray *)listActionsForDevice: (id)device forUrn: (enum urnServiceNames)urn
+{
+    device = (BasicUPnPDevice *)device;
+    BasicUPnPService *serv;
+    NSString *serviceUrn;
+    
+    switch (urn)
+    {
+        case urnRenderingService:
+            serviceUrn = @"urn:schemas-upnp-org:service:RenderingControl:1";
+            break;
+            
+        case urnContentService:
+            serviceUrn = @"urn:schemas-upnp-org:service:ContentDirectory:1";
+            break;
+            
+        case urnAVTransportService:
+            serviceUrn = @"urn:schemas-upnp-org:service:AVTransport:1";
+            break;
+    }
+    
+    
+     serv = [device getServiceForType:serviceUrn];
+    
+    return [serv.actionList copy];
+}
+
+// compare actions with needed actions and returns actions which the app can use
++ (NSArray *)compareActions: (NSArray *)act withNeededActions: (NSArray *)neededActions
+{
+    NSMutableArray *actions = [NSMutableArray new];
+    
+    for (int i = 0; i < neededActions.count; i++)
+    {
+        if ([act containsObject:neededActions[i]])
+            [actions addObject:neededActions[i]];
+    }
+    
+    return [actions copy];
 }
 
 @end

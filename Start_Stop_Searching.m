@@ -58,7 +58,7 @@
     [[[UPnPManager GetInstance] SSDP] setUserAgentProduct:@"XBMC-Control/1.0" andOS:@"iOS"];
     
     // Search for UPnP Devices
-    [[[UPnPManager GetInstance] upnpEvents] start]; // HACK
+    [[[UPnPManager GetInstance] upnpEvents] start];
     [[[UPnPManager GetInstance] SSDP] startSSDP];
     [[[UPnPManager GetInstance] SSDP] searchSSDP];
 }
@@ -78,7 +78,7 @@
     refreshTimer = [NSTimer scheduledTimerWithTimeInterval:REFRESH_TIMER_INTERVAL target:self selector:@selector(foundNewDevice) userInfo:nil repeats:YES];
     
     // Search for UPnP Devices
-    [[[UPnPManager GetInstance] upnpEvents] start]; // HACK
+    [[[UPnPManager GetInstance] upnpEvents] start];
     [[[UPnPManager GetInstance] SSDP] startSSDP];
     [[[UPnPManager GetInstance] SSDP] searchSSDP];
 }
