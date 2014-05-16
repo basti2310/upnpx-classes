@@ -54,4 +54,10 @@
     return [actions copy];
 }
 
+// returns YES if the available action list contains a certain action
++ (BOOL)actionList: (NSArray *)actions containsAction: (NSString *)actionName
+{
+    return [actions containsObject:actionName];
+}
+
 @end

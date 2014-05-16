@@ -26,4 +26,7 @@
 // returns all actions for one device
 + (NSArray *)listActionsForDevice: (id)device forUrn: (NSString *)urn;
 
+// returns YES if the available action list contains a certain action
++ (BOOL)actionList: (NSArray *)actions containsAction: (NSString *)actionName;
+
 @end
