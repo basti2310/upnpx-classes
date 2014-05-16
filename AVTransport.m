@@ -104,6 +104,9 @@ static NSString *iid = @"0";                // p. 16 - AVTransport:1 Service Tem
         // get uri
         NSString *uri = [self getUriForItem:(MediaServer1ItemObject *)[playlist objectAtIndex:pos]];
         
+        // stop befor start playing a new item
+        [[renderer avTransport] StopWithInstanceID:iid];
+        
         // Play
         [[renderer avTransport] SetPlayModeWithInstanceID:iid NewPlayMode:@"NORMAL"];                           // p. 32 - AVTransport:1 Service Template Version 1.01
         [[renderer avTransport] SetAVTransportURIWithInstanceID:iid CurrentURI:uri CurrentURIMetaData:@""];     // p. 18 - AVTransport:1 Service Template Version 1.01
