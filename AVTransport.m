@@ -172,32 +172,13 @@ static NSString *iid = @"0";                // p. 16 - AVTransport:1 Service Tem
     NSMutableString *outAbsTime = [[NSMutableString alloc] init];
     NSMutableString *outRelCount = [[NSMutableString alloc] init];
     NSMutableString *outAbsCount = [[NSMutableString alloc] init];
-    
-    NSMutableArray *trackInfo = [[NSMutableArray alloc] init];
-    
+        
     //Lazy Observer attach
     if([[renderer avTransportService] isObserver:(BasicUPnPServiceObserver*)self] == NO)
         [[renderer avTransportService] addObserver:(BasicUPnPServiceObserver*)self];
     
     // p. 22 - AVTransport:1 Service Template Version 1.01
     [[renderer avTransport] GetPositionInfoWithInstanceID:iid OutTrack:outTrack OutTrackDuration:outTrackDuration OutTrackMetaData:outTrackMetaData OutTrackURI:outTrackURI OutRelTime:outRelTime OutAbsTime:outAbsTime OutRelCount:outRelCount OutAbsCount:outAbsCount];
-    
-    // get track info like title, album, etc. --> MediaServer1ItemObject.h
-    [trackInfo removeAllObjects];
-    NSData *didl = [outTrackMetaData dataUsingEncoding:NSUTF8StringEncoding];
-    MediaServerBasicObjectParser *parser = [[MediaServerBasicObjectParser alloc] initWithMediaObjectArray:trackInfo itemsOnly:NO];
-    [parser parseFromData:didl];
-    
-    if (trackInfo.count >= 1)
-    {
-        MediaServer1ItemObject *item = trackInfo[0];
-        NSLog(@"// title: %@", item.title);
-        
-        if (!item.isContainer)
-        {
-            ;
-        }
-    }
     
     return [NSDictionary dictionaryWithObjectsAndKeys:
                                     outTrack,           @"currentTrack",
