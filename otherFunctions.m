@@ -25,35 +25,17 @@
 }
 
 // return available actions
-+ (NSArray *)availableActionsForDevice: (id)device forUrn: (enum urnServiceNames)urn withNeededActions: (NSArray *)neededActions
++ (NSArray *)availableActionsForDevice: (id)device forUrn: (NSString *)urn withNeededActions: (NSArray *)neededActions
 {
     return [self compareActions:[self listActionsForDevice:device forUrn:urn] withNeededActions:neededActions];
 }
 
 // returns all actions for one device
-+ (NSArray *)listActionsForDevice: (id)device forUrn: (enum urnServiceNames)urn
++ (NSArray *)listActionsForDevice: (id)device forUrn: (NSString *)urn
 {
     device = (BasicUPnPDevice *)device;
-    BasicUPnPService *serv;
-    NSString *serviceUrn;
     
-    switch (urn)
-    {
-        case urnRenderingService:
-            serviceUrn = @"urn:schemas-upnp-org:service:RenderingControl:1";
-            break;
-            
-        case urnContentService:
-            serviceUrn = @"urn:schemas-upnp-org:service:ContentDirectory:1";
-            break;
-            
-        case urnAVTransportService:
-            serviceUrn = @"urn:schemas-upnp-org:service:AVTransport:1";
-            break;
-    }
-    
-    
-     serv = [device getServiceForType:serviceUrn];
+    BasicUPnPService *serv = [device getServiceForType:urn];
     
     return [serv.actionList copy];
 }

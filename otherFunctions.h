@@ -8,15 +8,11 @@
 
 #import <Foundation/Foundation.h>
 
-@interface otherFunctions : NSObject
+#define URN_SERVICE_RENDERING_CONTROL_1     @"urn:schemas-upnp-org:service:RenderingControl:1"
+#define URN_SERVICE_CONTENT_DIRECTORY_1     @"urn:schemas-upnp-org:service:ContentDirectory:1"
+#define URN_SERVICE_AVTRANSPORT_1            @"urn:schemas-upnp-org:service:AVTransport:1"
 
-// urn list
-enum urnServiceNames
-{
-    urnRenderingService,
-    urnContentService,
-    urnAVTransportService
-};
+@interface otherFunctions : NSObject
 
 // returns the name of a media device
 + (NSString *)nameOfUPnPDevice: (id)device;
@@ -25,9 +21,9 @@ enum urnServiceNames
 + (NSString *)floatIntoString: (float)value;
 
 // return available actions
-+ (NSArray *)availableActionsForDevice: (id)device forUrn: (enum urnServiceNames)urn withNeededActions: (NSArray *)neededActions;
++ (NSArray *)availableActionsForDevice: (id)device forUrn: (NSString *)urn withNeededActions: (NSArray *)neededActions;
 
 // returns all actions for one device
-+ (NSArray *)listActionsForDevice: (id)device forUrn: (enum urnServiceNames)urn;
++ (NSArray *)listActionsForDevice: (id)device forUrn: (NSString *)urn;
 
 @end
