@@ -25,6 +25,7 @@
 - (int)next;
 - (int)previous;
 - (int)seekWithMode: (NSString *)mode andTarget: (NSString *)target;
-- (NSDictionary *)getPositionAndTrackInfo;
+- (NSDictionary *)getPositionInfo;
+- (BOOL)isRenderPlaying;
 
 @end

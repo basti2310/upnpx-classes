@@ -9,12 +9,18 @@
 #import "AVTransport.h"
 #import "BasicUPnPService.h"
 #import "MediaServerBasicObjectParser.h"
+#import "otherFunctions.h"
 
 static AVTransport *avTransport = nil;
 static NSString *iid = @"0";                // p. 16 - AVTransport:1 Service Template Version 1.01
                                             // p. 6/1.2 - RenderingControl:1 Service Template Version 1.01
                                             // p. 17 - RenderingControl:1 Service Template Version 1.01
                                             // p. 39/2.5.1 - RenderingControl:1 Service Template Version 1.01
+
+@interface AVTransport ()
+
+
+@end
 
 @implementation AVTransport
 {
@@ -72,6 +78,9 @@ static NSString *iid = @"0";                // p. 16 - AVTransport:1 Service Tem
     {
         MediaServer1ItemRes *itemRes = item.resources[i];
         NSRange range = [itemRes.protocolInfo rangeOfString:@"http-get:" options:NSCaseInsensitiveSearch];
+        
+        NSLog(@"/// res: %@", [item.uriCollection objectForKey:itemRes.protocolInfo]);
+        
         if(range.location == 0)
         {
             uri = [item.uriCollection objectForKey:itemRes.protocolInfo];
@@ -80,8 +89,6 @@ static NSString *iid = @"0";                // p. 16 - AVTransport:1 Service Tem
         else
             uri = @"ERROR";
     }
-    
-    NSLog(@"uri: %@", uri);
     
     return uri;
 }
@@ -161,7 +168,7 @@ static NSString *iid = @"0";                // p. 16 - AVTransport:1 Service Tem
     return 0;
 }
 
-- (NSDictionary *)getPositionAndTrackInfo
+- (NSDictionary *)getPositionInfo
 {
     // Do we have a Renderer?
     if(renderer == nil)
@@ -241,6 +248,29 @@ static NSString *iid = @"0";                // p. 16 - AVTransport:1 Service Tem
     [[renderer avTransport] PreviousWithInstanceID:iid];        // p. 31 - AVTransport:1 Service Template Version 1.01
     
     return 0;
+}
+
+
+// check, if a DMR is playing a item
+// not very good! 
+- (BOOL)isRenderPlaying
+{
+    NSString *absTimeOld = [[[AVTransport getInstance] getPositionInfo] objectForKey:@"absTime"];
+    
+    [NSThread sleepForTimeInterval:8.0f];
+    
+    NSString *absTime = [[[AVTransport getInstance] getPositionInfo] objectForKey:@"absTime"];
+    
+    float absTimeFloat = [otherFunctions timeStringIntoFloat:absTime];
+    float absTimeOldFloat = [otherFunctions timeStringIntoFloat:absTimeOld];
+    
+    if (absTimeFloat != absTimeOldFloat)
+    {
+        // render is playing
+        return YES;
+    }
+    
+    return NO;
 }
 
 #pragma mark - Eventing

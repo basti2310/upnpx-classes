@@ -29,4 +29,10 @@
 // returns YES if the available action list contains a certain action
 + (BOOL)actionList: (NSArray *)actions containsAction: (NSString *)actionName;
 
+// converts a time string (01:45:33) into a float value
++ (float)timeStringIntoFloat: (NSString *)timeString;
+
+// converts a float value into a time string (01:45:33)
++ (NSString *)floatIntoTimeString: (int)value;
+
 @end
