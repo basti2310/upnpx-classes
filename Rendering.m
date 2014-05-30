@@ -178,7 +178,7 @@ static NSString *channel = @"Master";       // p. 10 - RenderingControl:1 Servic
 // https://code.google.com/p/upnpx/wiki/TutorialEventing
 - (void)UPnPEvent: (BasicUPnPService *)sender events:(NSDictionary *)events
 {
-    NSLog(@"Events: %@", events);
+    NSLog(@"Rendering Events: %@", events);
     
     /*
     if (sender == [renderer renderingControlService])

@@ -204,8 +204,8 @@ static NSString *iid = @"0";                // p. 16 - AVTransport:1 Service Tem
 
 - (int)seekWithMode: (NSString *)mode andTarget: (NSString *)target
 {
-    // mode: p. 10 & p. 15 - AVTransport:1 Service Template Version 1.01
-    // target: p. 16 - AVTransport:1 Service Template Version 1.01
+    // mode: p. 10 & p. 15 - AVTransport:1 Service Template Version 1.01    example: @"REL_TIME"
+    // target: p. 16 - AVTransport:1 Service Template Version 1.01 
 
     // Do we have a Renderer?
     if(renderer == nil)
@@ -250,47 +250,23 @@ static NSString *iid = @"0";                // p. 16 - AVTransport:1 Service Tem
     return 0;
 }
 
-
-// check, if a DMR is playing a item
-// not very good! 
-- (BOOL)isRenderPlaying
-{
-    NSString *absTimeOld = [[[AVTransport getInstance] getPositionInfo] objectForKey:@"absTime"];
-    
-    [NSThread sleepForTimeInterval:8.0f];
-    
-    NSString *absTime = [[[AVTransport getInstance] getPositionInfo] objectForKey:@"absTime"];
-    
-    float absTimeFloat = [otherFunctions timeStringIntoFloat:absTime];
-    float absTimeOldFloat = [otherFunctions timeStringIntoFloat:absTimeOld];
-    
-    if (absTimeFloat != absTimeOldFloat)
-    {
-        // render is playing
-        return YES;
-    }
-    
-    return NO;
-}
-
 #pragma mark - Eventing
 
 // https://code.google.com/p/upnpx/wiki/TutorialEventing
 - (void)UPnPEvent: (BasicUPnPService *)sender events:(NSDictionary *)events
 {
-    NSLog(@"Events: %@", events);
+    NSLog(@"AVTransport Events: %@", events);
     
-    /*
     if(sender == [renderer avTransportService])
     {
-        NSString *newState = [events objectForKey:@"TransportState"];
+        NSString *newState = [events objectForKey:@"TransportStatus"];
         
-        if([newState isEqualToString:@"STOPPED"])
+        if([newState isEqualToString:@"ERROR_OCCURRED"])
         {
-            NSLog(@"Event: 'STOPPED'");
+            UIAlertView *alert = [[UIAlertView alloc] initWithTitle:@"Error" message:@"Can't play item!" delegate:self cancelButtonTitle:@"OK" otherButtonTitles:nil, nil];
+            [alert show];
         }
     }
-     */
 }
 
 @end
