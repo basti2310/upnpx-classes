@@ -13,6 +13,8 @@
 #import "MediaServer1ContainerObject.h"
 #import "MediaServer1Device.h"
 #import "MediaRenderer1Device.h"
+#import "otherFunctions.h"
+#import "UPnPDB.h"
 
 #define REFRESH_TIMER_INTERVAL  0.5
 #define MAX_TIMER_CNT           5
@@ -133,16 +135,13 @@
     for (int i = 0; i < self.upnpDevices.count; i++)
     {
         BasicUPnPDevice *device = [self.upnpDevices objectAtIndex:i];
-        NSLog(@"Device: %@", device.friendlyName);
         
-        if ([[device urn] isEqualToString:@"urn:schemas-upnp-org:device:MediaServer:1"])
+        if ([device.urn isEqualToString:@"urn:schemas-upnp-org:device:MediaServer:1"])
         {
-            NSLog(@"Media Server 1");
             [servers addObject:(MediaServer1Device *)device];
         }
-        else if ([[device urn] isEqualToString:@"urn:schemas-upnp-org:device:MediaRenderer:1"])
+        else if ([device.urn isEqualToString:@"urn:schemas-upnp-org:device:MediaRenderer:1"])
         {
-            NSLog(@"Media Renderer 1");
             [renderer addObject:(MediaRenderer1Device *)device];
         }
     }
@@ -159,17 +158,16 @@
 }
 
 #pragma mark - Protocol: UPnPDBObserver
-
-// device array will update
-- (void)UPnPDBWillUpdate:(UPnPDB *)sender
+ 
+- (void)UPnPDDeviceAdded:(UPnPDB*)sender device:(BasicUPnPDevice *) device
 {
-    NSLog(@"will update");
+    NSLog(@"device added: %@", [otherFunctions nameOfUPnPDevice:device]);
+    [self performSelectorOnMainThread:@selector(searchForDevices) withObject:nil waitUntilDone:YES];
 }
 
-// device array updated
-- (void)UPnPDBUpdated:(UPnPDB *)sender
+- (void)UPnPDDeviceRemoved:(UPnPDB*)sender device:(BasicUPnPDevice *) device
 {
-    NSLog(@"updated");
+    NSLog(@"device removed: %@", [otherFunctions nameOfUPnPDevice:device]);
     [self performSelectorOnMainThread:@selector(searchForDevices) withObject:nil waitUntilDone:YES];
 }
 

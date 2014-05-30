@@ -79,8 +79,6 @@ static NSString *iid = @"0";                // p. 16 - AVTransport:1 Service Tem
         MediaServer1ItemRes *itemRes = item.resources[i];
         NSRange range = [itemRes.protocolInfo rangeOfString:@"http-get:" options:NSCaseInsensitiveSearch];
         
-        NSLog(@"/// res: %@", [item.uriCollection objectForKey:itemRes.protocolInfo]);
-        
         if(range.location == 0)
         {
             uri = [item.uriCollection objectForKey:itemRes.protocolInfo];
