@@ -166,7 +166,7 @@ static NSString *iid = @"0";                // p. 16 - AVTransport:1 Service Tem
     return 0;
 }
 
-- (NSDictionary *)getPositionInfo
+- (NSDictionary *)getPositionAndTrackInfo
 {
     // Do we have a Renderer?
     if(renderer == nil)
@@ -180,6 +180,8 @@ static NSString *iid = @"0";                // p. 16 - AVTransport:1 Service Tem
     NSMutableString *outAbsTime = [[NSMutableString alloc] init];
     NSMutableString *outRelCount = [[NSMutableString alloc] init];
     NSMutableString *outAbsCount = [[NSMutableString alloc] init];
+    
+    NSMutableArray *metaDataArray = [NSMutableArray new];
         
     //Lazy Observer attach
     if([[renderer avTransportService] isObserver:(BasicUPnPServiceObserver*)self] == NO)
@@ -187,6 +189,13 @@ static NSString *iid = @"0";                // p. 16 - AVTransport:1 Service Tem
     
     // p. 22 - AVTransport:1 Service Template Version 1.01
     [[renderer avTransport] GetPositionInfoWithInstanceID:iid OutTrack:outTrack OutTrackDuration:outTrackDuration OutTrackMetaData:outTrackMetaData OutTrackURI:outTrackURI OutRelTime:outRelTime OutAbsTime:outAbsTime OutRelCount:outRelCount OutAbsCount:outAbsCount];
+    
+    [metaDataArray removeAllObjects];
+    NSData *didl = [outTrackMetaData dataUsingEncoding:NSUTF8StringEncoding];
+    MediaServerBasicObjectParser *parser = [[MediaServerBasicObjectParser alloc] initWithMediaObjectArray:metaDataArray itemsOnly:NO];
+    [parser parseFromData:didl];
+    
+    MediaServer1ItemObject *item = [metaDataArray objectAtIndex:0];
     
     return [NSDictionary dictionaryWithObjectsAndKeys:
                                     outTrack,           @"currentTrack",
@@ -197,6 +206,7 @@ static NSString *iid = @"0";                // p. 16 - AVTransport:1 Service Tem
                                     outAbsTime,         @"absTime",
                                     outRelCount,        @"relCount",
                                     outAbsCount,        @"absCount",
+                                    item,               @"MediaServer1ItemObject",
                                     nil];
 }
 
@@ -261,8 +271,7 @@ static NSString *iid = @"0";                // p. 16 - AVTransport:1 Service Tem
         
         if([newState isEqualToString:@"ERROR_OCCURRED"])
         {
-            UIAlertView *alert = [[UIAlertView alloc] initWithTitle:@"Error" message:@"Can't play item!" delegate:self cancelButtonTitle:@"OK" otherButtonTitles:nil, nil];
-            [alert show];
+            NSLog(@"Can not play item!");
         }
     }
 }

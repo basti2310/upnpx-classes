@@ -25,6 +25,6 @@
 - (int)next;
 - (int)previous;
 - (int)seekWithMode: (NSString *)mode andTarget: (NSString *)target;
-- (NSDictionary *)getPositionInfo;
+- (NSDictionary *)getPositionAndTrackInfo;
 
 @end
