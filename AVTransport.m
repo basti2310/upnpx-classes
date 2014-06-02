@@ -182,6 +182,8 @@ static NSString *iid = @"0";                // p. 16 - AVTransport:1 Service Tem
     NSMutableString *outAbsCount = [[NSMutableString alloc] init];
     
     NSMutableArray *metaDataArray = [NSMutableArray new];
+    
+    MediaServer1ItemObject *item = nil;
         
     //Lazy Observer attach
     if([[renderer avTransportService] isObserver:(BasicUPnPServiceObserver*)self] == NO)
@@ -195,7 +197,10 @@ static NSString *iid = @"0";                // p. 16 - AVTransport:1 Service Tem
     MediaServerBasicObjectParser *parser = [[MediaServerBasicObjectParser alloc] initWithMediaObjectArray:metaDataArray itemsOnly:NO];
     [parser parseFromData:didl];
     
-    MediaServer1ItemObject *item = [metaDataArray objectAtIndex:0];
+    if (metaDataArray.count > 0)
+        item = [metaDataArray objectAtIndex:0];
+    else
+        item = nil;
     
     return [NSDictionary dictionaryWithObjectsAndKeys:
                                     outTrack,           @"currentTrack",
