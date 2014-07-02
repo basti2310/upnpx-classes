@@ -59,4 +59,16 @@ static ContentDirectory *contentDir = nil;
     return [playlist copy];
 }
 
+- (NSString *)browseMetaDataWithMediaItem: (MediaServer1ItemObject *)mediaItem andDevice: (MediaServer1Device *)device
+{
+	NSMutableString *metaData = [[NSMutableString alloc] init];
+	NSMutableString *outTotalMatches = [[NSMutableString alloc] init];
+	NSMutableString *outNumberReturned = [[NSMutableString alloc] init];
+	NSMutableString *outUpdateID = [[NSMutableString alloc] init];
+	
+	[[device contentDirectory] BrowseWithObjectID:[mediaItem objectID] BrowseFlag:@"BrowseMetadata" Filter:@"*" StartingIndex:@"0" RequestedCount:@"1" SortCriteria:@"+dc:title" OutResult:metaData OutNumberReturned:outNumberReturned OutTotalMatches:outTotalMatches OutUpdateID:outUpdateID];
+    
+    return [metaData copy];
+}
+
 @end

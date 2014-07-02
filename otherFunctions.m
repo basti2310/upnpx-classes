@@ -82,7 +82,7 @@
     [timeScanner scanInt:&minutes];
     [timeScanner scanString:@":" intoString:nil];
     [timeScanner scanInt:&sec];
-    
+        
     return (hours * 3600 + minutes * 60 + sec);
 }
 
@@ -110,8 +110,7 @@
         secStr = [NSString stringWithFormat:@"0%d", sec];
     else
         secStr = [NSString stringWithFormat:@"%d", sec];
-    
-    
+        
     return [NSString stringWithFormat:@"%@:%@:%@", hourStr, minStr, secStr];
 }
 

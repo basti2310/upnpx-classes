@@ -20,7 +20,7 @@
 // converts a folat value into a string
 + (NSString *)floatIntoString: (float)value;
 
-// return available actions
+// returns available actions
 + (NSArray *)availableActionsForDevice: (id)device forUrn: (NSString *)urn withNeededActions: (NSArray *)neededActions;
 
 // returns all actions for one device
