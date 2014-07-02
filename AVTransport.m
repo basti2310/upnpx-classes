@@ -81,15 +81,18 @@ static NSString *iid = @"0";                // p. 16 - AVTransport:1 Service Tem
     for (int i = 0; i < item.resources.count; i++)
     {
         MediaServer1ItemRes *itemRes = item.resources[i];
-        NSRange range = [itemRes.protocolInfo rangeOfString:@"http-get:" options:NSCaseInsensitiveSearch];
+        NSAssert([itemRes respondsToSelector:@selector(protocolInfo)], @"unknown selector 1");
+
+        NSRange range1 = [itemRes.protocolInfo rangeOfString:@"http-get:" options:NSCaseInsensitiveSearch];
+        NSRange range2 = [itemRes.protocolInfo rangeOfString:@"x-file-cifs:" options:NSCaseInsensitiveSearch];
         
-        if(range.location == 0)
+        if((range1.location == 0) || (range2.location == 0))
         {
             uri = [item.uriCollection objectForKey:itemRes.protocolInfo];
             break;
         }
         else
-            uri = @"ERROR";
+            uri = nil;
     }
     
     return uri;
@@ -107,22 +110,56 @@ static NSString *iid = @"0";                // p. 16 - AVTransport:1 Service Tem
     if([[renderer avTransportService] isObserver:(BasicUPnPServiceObserver*)self] == NO)
         [[renderer avTransportService] addObserver:(BasicUPnPServiceObserver*)self];
     
-    NSString *metaData = [[ContentDirectory getInstance] browseMetaDataWithMediaItem:[playlist objectAtIndex:pos] andDevice:server];
+    MediaServer1BasicObject *item = [playlist objectAtIndex:pos];
     
     // Is it a Media1ServerItem?
-    if(![[playlist objectAtIndex:pos] isContainer])
+    if(!item.isContainer)
     {
+        // get metaData
+        NSString *metaData = [[ContentDirectory getInstance] browseMetaDataWithMediaItem:[playlist objectAtIndex:pos] andDevice:server];
+        
         // get uri
         NSString *uri = [self getUriForItem:(MediaServer1ItemObject *)[playlist objectAtIndex:pos]];
+        // x-file-cifs://MACBOOK-8016EA/iTunes/iTunes%20Media/Music/2%20Unlimited/Get%20Ready%20incl%20Steve%20Aoki%20Remixes/01%20Get%20Ready%20(Steve%20Aoki%20Extended).mp3
+        
+        [[renderer avTransport] SetPlayModeWithInstanceID:iid NewPlayMode:@"NORMAL"];                                               // p. 32 - AVTransport:1 Service Template Version 1.01
         
         // stop befor start playing a new item
-        [[renderer avTransport] StopWithInstanceID:iid];
+        [[renderer avTransport] StopWithInstanceID:iid];                                                                            // p. 25 - AVTransport:1 Service Template Version 1.01
         
         // Play
         [[renderer avTransport] SetPlayModeWithInstanceID:iid NewPlayMode:@"NORMAL"];                                               // p. 32 - AVTransport:1 Service Template Version 1.01
         [[renderer avTransport] SetAVTransportURIWithInstanceID:iid CurrentURI:uri CurrentURIMetaData:[metaData XMLEscape]];        // p. 18 - AVTransport:1 Service Template Version 1.01
         [[renderer avTransport] PlayWithInstanceID:iid Speed:@"1"];                                                                 // p. 26 - AVTransport:1 Service Template Version 1.01
     }
+    
+    return 0;
+}
+
+- (int)playPlaylist: (MediaServer1ContainerObject *)object
+{
+    // Do we have a Renderer and a playlist?
+    if(renderer == nil || server == nil)
+        return -1;
+    
+    //Lazy Observer attach
+    if([[renderer avTransportService] isObserver:(BasicUPnPServiceObserver*)self] == NO)
+        [[renderer avTransportService] addObserver:(BasicUPnPServiceObserver*)self];
+    
+    // get uri
+    NSString *uri = object.uri;
+        
+    NSLog(@"// play the list: %@", uri);
+    
+    [[renderer avTransport] SetPlayModeWithInstanceID:iid NewPlayMode:@"NORMAL"];                                               // p. 32 - AVTransport:1 Service Template Version 1.01
+    
+    // stop befor start playing a new item
+    [[renderer avTransport] StopWithInstanceID:iid];                                                                            // p. 25 - AVTransport:1 Service Template Version 1.01
+    
+    // Play
+    [[renderer avTransport] SetPlayModeWithInstanceID:iid NewPlayMode:@"NORMAL"];                                               // p. 32 - AVTransport:1 Service Template Version 1.01
+    [[renderer avTransport] SetAVTransportURIWithInstanceID:iid CurrentURI:uri CurrentURIMetaData:@""];                         // p. 18 - AVTransport:1 Service Template Version 1.01
+    [[renderer avTransport] PlayWithInstanceID:iid Speed:@"1"];                                                                 // p. 26 - AVTransport:1 Service Template Version 1.01
     
     return 0;
 }
