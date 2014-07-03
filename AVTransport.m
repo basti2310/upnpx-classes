@@ -55,7 +55,7 @@ static NSString *iid = @"0";                // p. 16 - AVTransport:1 Service Tem
     server = serv;
     
     //Remove the Old Observer, if any
-    if(oldRender != nil)
+    if (oldRender != nil)
     {
         if([[oldRender avTransportService] isObserver:(BasicUPnPServiceObserver*)self] == YES)
             [[oldRender avTransportService] removeObserver:(BasicUPnPServiceObserver*)self];
@@ -64,14 +64,14 @@ static NSString *iid = @"0";                // p. 16 - AVTransport:1 Service Tem
     renderer = rend;
     
     //Add New Observer, if any
-    if(renderer != nil)
+    if (renderer != nil)
     {
         if([[renderer avTransportService] isObserver:(BasicUPnPServiceObserver*)self] == NO)
             [[renderer avTransportService] addObserver:(BasicUPnPServiceObserver*)self];
     }
 }
 
-#pragma mark - get URI
+#pragma mark - get & check URI
 
 // return the right uri for a item
 - (NSString *)getUriForItem: (MediaServer1ItemObject *)item
@@ -81,7 +81,6 @@ static NSString *iid = @"0";                // p. 16 - AVTransport:1 Service Tem
     for (int i = 0; i < item.resources.count; i++)
     {
         MediaServer1ItemRes *itemRes = item.resources[i];
-        NSAssert([itemRes respondsToSelector:@selector(protocolInfo)], @"unknown selector 1");
 
         NSRange range1 = [itemRes.protocolInfo rangeOfString:@"http-get:" options:NSCaseInsensitiveSearch];
         NSRange range2 = [itemRes.protocolInfo rangeOfString:@"x-file-cifs:" options:NSCaseInsensitiveSearch];
@@ -98,58 +97,48 @@ static NSString *iid = @"0";                // p. 16 - AVTransport:1 Service Tem
     return uri;
 }
 
-#pragma mark - AVTransport Functions
-
-- (int)play: (NSArray *)playlist position: (int)pos
+- (NSString *)getUriForContainer: (MediaServer1ContainerObject *)container
 {
-    // Do we have a Renderer and a playlist?
-    if(renderer == nil || playlist == nil || server == nil)
-        return -1;
-    
-    //Lazy Observer attach
-    if([[renderer avTransportService] isObserver:(BasicUPnPServiceObserver*)self] == NO)
-        [[renderer avTransportService] addObserver:(BasicUPnPServiceObserver*)self];
-    
-    MediaServer1BasicObject *item = [playlist objectAtIndex:pos];
-    
-    // Is it a Media1ServerItem?
-    if(!item.isContainer)
+    for (NSString *uri in container.uris)
     {
-        // get metaData
-        NSString *metaData = [[ContentDirectory getInstance] browseMetaDataWithMediaItem:[playlist objectAtIndex:pos] andDevice:server];
+        NSRange range1 = [uri rangeOfString:@"http-get:" options:NSCaseInsensitiveSearch];
+        NSRange range2 = [uri rangeOfString:@"x-file-cifs:" options:NSCaseInsensitiveSearch];
+        NSRange range3 = [uri rangeOfString:@"x-rincon-playlist:" options:NSCaseInsensitiveSearch];
         
-        // get uri
-        NSString *uri = [self getUriForItem:(MediaServer1ItemObject *)[playlist objectAtIndex:pos]];
-        // x-file-cifs://MACBOOK-8016EA/iTunes/iTunes%20Media/Music/2%20Unlimited/Get%20Ready%20incl%20Steve%20Aoki%20Remixes/01%20Get%20Ready%20(Steve%20Aoki%20Extended).mp3
-        
-        [[renderer avTransport] SetPlayModeWithInstanceID:iid NewPlayMode:@"NORMAL"];                                               // p. 32 - AVTransport:1 Service Template Version 1.01
-        
-        // stop befor start playing a new item
-        [[renderer avTransport] StopWithInstanceID:iid];                                                                            // p. 25 - AVTransport:1 Service Template Version 1.01
-        
-        // Play
-        [[renderer avTransport] SetPlayModeWithInstanceID:iid NewPlayMode:@"NORMAL"];                                               // p. 32 - AVTransport:1 Service Template Version 1.01
-        [[renderer avTransport] SetAVTransportURIWithInstanceID:iid CurrentURI:uri CurrentURIMetaData:[metaData XMLEscape]];        // p. 18 - AVTransport:1 Service Template Version 1.01
-        [[renderer avTransport] PlayWithInstanceID:iid Speed:@"1"];                                                                 // p. 26 - AVTransport:1 Service Template Version 1.01
+        if((range1.location == 0) || (range2.location == 0) || (range3.location == 0))
+        {
+            return uri;
+        }
     }
     
-    return 0;
+    return nil;
 }
 
-- (int)playPlaylist: (MediaServer1ContainerObject *)object
+#pragma mark - AVTransport Functions
+
+- (int)play: (MediaServer1BasicObject *)item
 {
-    // Do we have a Renderer and a playlist?
-    if(renderer == nil || server == nil)
+    // Do we have a Renderer and a server?
+    if (renderer == nil || server == nil)
+    {
         return -1;
+    }
+    
+    if (item.isContainer)  // use other function -> - (int)playPlaylist: (MediaServer1ContainerObject *)object
+    {
+        return 1;
+    }
     
     //Lazy Observer attach
     if([[renderer avTransportService] isObserver:(BasicUPnPServiceObserver*)self] == NO)
         [[renderer avTransportService] addObserver:(BasicUPnPServiceObserver*)self];
     
+    
+    // get metaData
+    NSString *metaData = [[ContentDirectory getInstance] browseMetaDataWithMediaItem:(MediaServer1ItemObject *)item andDevice:server];
+    
     // get uri
-    NSString *uri = object.uri;
-        
-    NSLog(@"// play the list: %@", uri);
+    NSString *uri = [self getUriForItem:(MediaServer1ItemObject *)item];
     
     [[renderer avTransport] SetPlayModeWithInstanceID:iid NewPlayMode:@"NORMAL"];                                               // p. 32 - AVTransport:1 Service Template Version 1.01
     
@@ -158,8 +147,41 @@ static NSString *iid = @"0";                // p. 16 - AVTransport:1 Service Tem
     
     // Play
     [[renderer avTransport] SetPlayModeWithInstanceID:iid NewPlayMode:@"NORMAL"];                                               // p. 32 - AVTransport:1 Service Template Version 1.01
-    [[renderer avTransport] SetAVTransportURIWithInstanceID:iid CurrentURI:uri CurrentURIMetaData:@""];                         // p. 18 - AVTransport:1 Service Template Version 1.01
+    [[renderer avTransport] SetAVTransportURIWithInstanceID:iid CurrentURI:uri CurrentURIMetaData:[metaData XMLEscape]];        // p. 18 - AVTransport:1 Service Template Version 1.01
     [[renderer avTransport] PlayWithInstanceID:iid Speed:@"1"];                                                                 // p. 26 - AVTransport:1 Service Template Version 1.01
+    
+    return 0;
+}
+
+- (int)playPlaylist: (MediaServer1ContainerObject *)object
+{
+    // Do we have a Renderer and a playlist?
+    if (renderer == nil || server == nil)
+    {
+        return -1;
+    }
+    
+    // check uri
+    NSString *uri = [self getUriForContainer:object];
+    
+    if (uri == nil)     // render can not play object with this uri
+    {
+        return 1;
+    }
+    
+    //Lazy Observer attach
+    if([[renderer avTransportService] isObserver:(BasicUPnPServiceObserver*)self] == NO)
+        [[renderer avTransportService] addObserver:(BasicUPnPServiceObserver*)self];
+    
+    [[renderer avTransport] SetPlayModeWithInstanceID:iid NewPlayMode:@"NORMAL"];                           // p. 32 - AVTransport:1 Service Template Version 1.01
+    
+    // stop befor start playing a new item
+    [[renderer avTransport] StopWithInstanceID:iid];                                                        // p. 25 - AVTransport:1 Service Template Version 1.01
+    
+    // Play
+    [[renderer avTransport] SetPlayModeWithInstanceID:iid NewPlayMode:@"NORMAL"];                           // p. 32 - AVTransport:1 Service Template Version 1.01
+    [[renderer avTransport] SetAVTransportURIWithInstanceID:iid CurrentURI:uri CurrentURIMetaData:@""];     // p. 18 - AVTransport:1 Service Template Version 1.01
+    [[renderer avTransport] PlayWithInstanceID:iid Speed:@"1"];                                             // p. 26 - AVTransport:1 Service Template Version 1.01
     
     return 0;
 }
@@ -167,8 +189,10 @@ static NSString *iid = @"0";                // p. 16 - AVTransport:1 Service Tem
 - (int)replay
 {
     // Do we have a Renderer?
-    if(renderer == nil)
+    if (renderer == nil)
+    {
         return -1;
+    }
     
     //Lazy Observer attach
     if([[renderer avTransportService] isObserver:(BasicUPnPServiceObserver*)self] == NO)
@@ -182,8 +206,10 @@ static NSString *iid = @"0";                // p. 16 - AVTransport:1 Service Tem
 - (int)stop
 {
     // Do we have a Renderer?
-    if(renderer == nil)
+    if (renderer == nil)
+    {
         return -1;
+    }
     
     //Lazy Observer attach
     if([[renderer avTransportService] isObserver:(BasicUPnPServiceObserver*)self] == NO)
@@ -197,8 +223,10 @@ static NSString *iid = @"0";                // p. 16 - AVTransport:1 Service Tem
 - (int)pause
 {
     // Do we have a Renderer?
-    if(renderer == nil)
+    if (renderer == nil)
+    {
         return -1;
+    }
     
     //Lazy Observer attach
     if([[renderer avTransportService] isObserver:(BasicUPnPServiceObserver*)self] == NO)
@@ -212,8 +240,10 @@ static NSString *iid = @"0";                // p. 16 - AVTransport:1 Service Tem
 - (NSDictionary *)getPositionAndTrackInfo
 {
     // Do we have a Renderer?
-    if(renderer == nil)
+    if (renderer == nil)
+    {
         return nil;
+    }
     
     NSMutableString *outTrack = [[NSMutableString alloc] init];
     NSMutableString *outTrackDuration = [[NSMutableString alloc] init];
@@ -241,9 +271,13 @@ static NSString *iid = @"0";                // p. 16 - AVTransport:1 Service Tem
     [parser parseFromData:didl];
     
     if (metaDataArray.count > 0)
+    {
         item = [metaDataArray objectAtIndex:0];
+    }
     else
+    {
         item = nil;
+    }
     
     return [NSDictionary dictionaryWithObjectsAndKeys:
                                     outTrack,           @"currentTrack",
@@ -264,8 +298,10 @@ static NSString *iid = @"0";                // p. 16 - AVTransport:1 Service Tem
     // target: p. 16 - AVTransport:1 Service Template Version 1.01 
 
     // Do we have a Renderer?
-    if(renderer == nil)
+    if (renderer == nil)
+    {
         return -1;
+    }
     
     //Lazy Observer attach
     if([[renderer avTransportService] isObserver:(BasicUPnPServiceObserver*)self] == NO)
@@ -279,8 +315,10 @@ static NSString *iid = @"0";                // p. 16 - AVTransport:1 Service Tem
 - (int)next
 {
     // Do we have a Renderer?
-    if(renderer == nil)
+    if (renderer == nil)
+    {
         return -1;
+    }
     
     //Lazy Observer attach
     if([[renderer avTransportService] isObserver:(BasicUPnPServiceObserver*)self] == NO)
@@ -294,8 +332,10 @@ static NSString *iid = @"0";                // p. 16 - AVTransport:1 Service Tem
 - (int)previous
 {
     // Do we have a Renderer?
-    if(renderer == nil)
+    if (renderer == nil)
+    {
         return -1;
+    }
     
     //Lazy Observer attach
     if([[renderer avTransportService] isObserver:(BasicUPnPServiceObserver*)self] == NO)
@@ -309,15 +349,15 @@ static NSString *iid = @"0";                // p. 16 - AVTransport:1 Service Tem
 #pragma mark - Eventing
 
 // https://code.google.com/p/upnpx/wiki/TutorialEventing
-- (void)UPnPEvent: (BasicUPnPService *)sender events:(NSDictionary *)events
+- (void)UPnPEvent:(BasicUPnPService *)sender events:(NSDictionary *)events
 {
     NSLog(@"AVTransport Events: %@", events);
     
-    if(sender == [renderer avTransportService])
+    if (sender == [renderer avTransportService])
     {
         NSString *newState = [events objectForKey:@"TransportStatus"];
         
-        if([newState isEqualToString:@"ERROR_OCCURRED"])
+        if ([newState isEqualToString:@"ERROR_OCCURRED"])
         {
             NSLog(@"Can not play item!");
         }

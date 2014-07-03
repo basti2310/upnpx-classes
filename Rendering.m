@@ -71,17 +71,31 @@ static NSString *channel = @"Master";       // p. 10 - RenderingControl:1 Servic
 
 #pragma mark - Rendering Functions
 
-- (void)setMute: (NSString *)mut
+- (int)setMute: (NSString *)mut
 {
+    // Do we have a Renderer?
+    if (renderer == nil)
+    {
+        return -1;
+    }
+    
     // Lazy Observer attach
     if ([[renderer renderingControlService] isObserver:(BasicUPnPServiceObserver *)self] == NO)
         [[renderer renderingControlService] addObserver:(BasicUPnPServiceObserver *)self];
     
     [[renderer renderingControl] SetMuteWithInstanceID:iid Channel:channel DesiredMute:mut];        // p. 34 - RenderingControl:1 Service Template Version 1.01
+    
+    return 0;
 }
 
 - (NSString *)getMute
 {
+    // Do we have a Renderer?
+    if (renderer == nil)
+    {
+        return nil;
+    }
+    
     NSMutableString *outMute = [[NSMutableString alloc] init];
 
     // Lazy Observer attach
@@ -93,17 +107,31 @@ static NSString *channel = @"Master";       // p. 10 - RenderingControl:1 Servic
     return [outMute copy];
 }
 
-- (void)setVolume: (NSString *)vol
+- (int)setVolume: (NSString *)vol
 {
+    // Do we have a Renderer?
+    if (renderer == nil)
+    {
+        return -1;
+    }
+    
     // Lazy Observer attach
     if ([[renderer renderingControlService] isObserver:(BasicUPnPServiceObserver *)self] == NO)
         [[renderer renderingControlService] addObserver:(BasicUPnPServiceObserver *)self];
     
     [[renderer renderingControl] SetVolumeWithInstanceID:iid Channel:channel DesiredVolume:vol];        // p. 35 - RenderingControl:1 Service Template Version 1.01
+    
+    return 0;
 }
 
 - (NSString *)getVolume
 {
+    // Do we have a Renderer?
+    if (renderer == nil)
+    {
+        return nil;
+    }
+    
     NSMutableString *outVolume = [[NSMutableString alloc] init];
     
     // Lazy Observer attach
@@ -115,17 +143,31 @@ static NSString *channel = @"Master";       // p. 10 - RenderingControl:1 Servic
     return [outVolume copy];
 }
 
-- (void)setBrightness: (NSString *)brigh
+- (int)setBrightness: (NSString *)brigh
 {
+    // Do we have a Renderer?
+    if (renderer == nil)
+    {
+        return -1;
+    }
+    
     // Lazy Observer attach
     if ([[renderer renderingControlService] isObserver:(BasicUPnPServiceObserver *)self] == NO)
         [[renderer renderingControlService] addObserver:(BasicUPnPServiceObserver *)self];
     
     [[renderer renderingControl] SetBrightnessWithInstanceID:iid DesiredBrightness:brigh];      // p. 22 - RenderingControl:1 Service Template Version 1.01
+    
+    return 0;
 }
 
 - (NSString *)getBrightness
 {
+    // Do we have a Renderer?
+    if (renderer == nil)
+    {
+        return nil;
+    }
+    
     NSMutableString *outBrightness = [[NSMutableString alloc] init];
     
     // Lazy Observer attach
@@ -137,17 +179,31 @@ static NSString *channel = @"Master";       // p. 10 - RenderingControl:1 Servic
     return [outBrightness copy];
 }
 
-- (void)setVolumeDB: (NSString *)volDB
+- (int)setVolumeDB: (NSString *)volDB
 {
+    // Do we have a Renderer?
+    if (renderer == nil)
+    {
+        return -1;
+    }
+    
     // Lazy Observer attach
     if ([[renderer renderingControlService] isObserver:(BasicUPnPServiceObserver *)self] == NO)
         [[renderer renderingControlService] addObserver:(BasicUPnPServiceObserver *)self];
     
     [[renderer renderingControl] SetVolumeDBWithInstanceID:iid Channel:channel DesiredVolume:volDB];        // p. 36 - RenderingControl:1 Service Template Version 1.01
+    
+    return 0;
 }
 
 - (NSString *)getVolumeDB
 {
+    // Do we have a Renderer?
+    if (renderer == nil)
+    {
+        return nil;
+    }
+    
     NSMutableString *outVolDB = [[NSMutableString alloc] init];
     
     // Lazy Observer attach
@@ -161,6 +217,12 @@ static NSString *channel = @"Master";       // p. 10 - RenderingControl:1 Servic
 
 - (NSString *)getVolumeDBRange
 {
+    // Do we have a Renderer?
+    if (renderer == nil)
+    {
+        return nil;
+    }
+    
     NSMutableString *outVolDBmin = [[NSMutableString alloc] init];
     NSMutableString *outVolDBmax = [[NSMutableString alloc] init];
     

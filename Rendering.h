@@ -18,16 +18,16 @@
 + (Rendering *)getInstance;
 - (void)setRenderer: (MediaRenderer1Device *)render;
 
-- (void)setMute: (NSString *)mut;
+- (int)setMute: (NSString *)mut;
 - (NSString *)getMute;
 
-- (void)setVolume: (NSString *)vol;
+- (int)setVolume: (NSString *)vol;
 - (NSString *)getVolume;
 
-- (void)setBrightness: (NSString *)brigh;
+- (int)setBrightness: (NSString *)brigh;
 - (NSString *)getBrightness;
 
-- (void)setVolumeDB: (NSString *)volDB;
+- (int)setVolumeDB: (NSString *)volDB;
 - (NSString *)getVolumeDB;
 
 - (NSString *)getVolumeDBRange;

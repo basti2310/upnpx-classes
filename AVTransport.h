@@ -18,7 +18,7 @@
 + (AVTransport *)getInstance;
 - (void)setRenderer: (MediaRenderer1Device *)rend andServer: (MediaServer1Device *)serv;
 
-- (int)play: (NSArray *)playli position: (int)pos;
+- (int)play: (MediaServer1BasicObject *)item;
 - (int)playPlaylist: (MediaServer1ContainerObject *)object;
 - (int)replay;
 - (int)stop;
