@@ -98,6 +98,11 @@ static NSString *iid = @"0";                // p. 16 - AVTransport:1 Service Tem
 
 - (NSString *)getUriForContainer: (MediaServer1ContainerObject *)container
 {
+    if (container.uris.count == 0)
+    {
+        return nil;
+    }
+    
     for (NSString *uri in container.uris)
     {
         NSRange range1 = [uri rangeOfString:@"http-get:" options:NSCaseInsensitiveSearch];
@@ -110,7 +115,7 @@ static NSString *iid = @"0";                // p. 16 - AVTransport:1 Service Tem
         }
     }
     
-    return nil;
+    return @"error";
 }
 
 #pragma mark - AVTransport Functions
@@ -131,7 +136,6 @@ static NSString *iid = @"0";                // p. 16 - AVTransport:1 Service Tem
     //Lazy Observer attach
     if([[renderer avTransportService] isObserver:(BasicUPnPServiceObserver*)self] == NO)
         [[renderer avTransportService] addObserver:(BasicUPnPServiceObserver*)self];
-    
     
     // get metaData
     NSString *metaData = [[ContentDirectory getInstance] browseMetaDataWithMediaItem:(MediaServer1ItemObject *)item andDevice:server];
@@ -163,9 +167,13 @@ static NSString *iid = @"0";                // p. 16 - AVTransport:1 Service Tem
     // check uri
     NSString *uri = [self getUriForContainer:object];
     
-    if (uri == nil)     // render can not play object with this uri
+    if ([uri isEqualToString:@"error"])     // render can not play object with this uri
     {
         return 1;
+    }
+    else if (uri == nil)    // no uri for folder
+    {
+        return 2;
     }
     
     //Lazy Observer attach
