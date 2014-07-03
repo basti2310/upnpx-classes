@@ -18,8 +18,6 @@
 @property (nonatomic, strong) NSMutableArray *upnpServers;
 @property (nonatomic, strong) NSMutableArray *upnpRenderer;
 
-@property (nonatomic) BOOL newDeviceTag;    // observe this property after refresh, YES = found new device
-
 // start searching for devices and save them into a array
 - (void)startUPnPDeviceSearch;
 

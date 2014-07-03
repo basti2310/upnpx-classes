@@ -16,25 +16,14 @@
 #import "otherFunctions.h"
 #import "UPnPDB.h"
 
-#define REFRESH_TIMER_INTERVAL  0.5
-#define MAX_TIMER_CNT           5
 
 @interface Start_Stop_Searching ()
+
+@property (nonatomic, strong) UPnPDB *db;
 
 @end
 
 @implementation Start_Stop_Searching
-{
-    UPnPDB *db;
-    
-    BOOL refreshTag;
-    
-    NSUInteger upnpDevicesCntOld;
-    
-    NSTimer *refreshTimer;
-    
-    int timerCnt;
-}
 
 #pragma mark - Initialisation
 
@@ -50,11 +39,11 @@
     
     // Get a pointer to the discovery database via the UPnPManager,
     // register yourself as an observer and tell the SSDP implementation to search for devices by calling searchSSDP
-    db = [[UPnPManager GetInstance] DB];
+    self.db = [[UPnPManager GetInstance] DB];
     
-    self.upnpDevices = [db rootDevices];
+    self.upnpDevices = [self.db rootDevices];
     
-    [db addObserver:(UPnPDBObserver *)self];
+    [self.db addObserver:(UPnPDBObserver *)self];
     
     // optinal: set User Agent
     [[[UPnPManager GetInstance] SSDP] setUserAgentProduct:@"XBMC-Control/1.0" andOS:@"iOS"];
@@ -71,43 +60,10 @@
 {
     NSLog(@"refresh ...");
     
-    refreshTag = YES;
-    upnpDevicesCntOld = self.upnpDevices.count;
-    timerCnt = 0;
-    [refreshTimer invalidate];
-    refreshTimer = nil;
-    // max. timer runtime = REFRESH_TIMER_INTERVAL * MAX_TIMER_CNT
-    refreshTimer = [NSTimer scheduledTimerWithTimeInterval:REFRESH_TIMER_INTERVAL target:self selector:@selector(foundNewDevice) userInfo:nil repeats:YES];
-    
     // Search for UPnP Devices
     [[[UPnPManager GetInstance] upnpEvents] start];
     [[[UPnPManager GetInstance] SSDP] startSSDP];
     [[[UPnPManager GetInstance] SSDP] searchSSDP];
-}
-
-- (void)foundNewDevice
-{
-    if (!refreshTag)    // found new device
-    {
-        refreshTag = NO;
-        [refreshTimer invalidate];
-        refreshTimer = nil;
-        
-        self.newDeviceTag = YES;
-    }
-    else
-    {
-        if (timerCnt == MAX_TIMER_CNT)  // no new devices were found
-        {
-            refreshTag = NO;
-            [refreshTimer invalidate];
-            refreshTimer = nil;
-            
-            self.newDeviceTag = NO;
-        }
-        
-        timerCnt++;
-    }
 }
 
 // stop searching for devices
@@ -119,10 +75,10 @@
     [[[UPnPManager GetInstance] SSDP] stopSSDP];
     [[[UPnPManager GetInstance] upnpEvents] stop];  // HACK
     
-    [db removeObserver:(UPnPDBObserver *)self];
+    [self.db removeObserver:(UPnPDBObserver *)self];
     
     self.upnpDevices = nil;
-    db = nil;
+    self.db = nil;
 }
 
 // search for DMS and DMR and save them into a array
@@ -149,12 +105,6 @@
     //remove dublicates and write to the property
     [self.upnpServers setArray:[[NSSet setWithArray:servers] allObjects]];
     [self.upnpRenderer setArray:[[NSSet setWithArray:renderer] allObjects]];
-    
-    // search for new devices
-    if (refreshTag && (upnpDevicesCntOld < self.upnpDevices.count))    // found new device
-    {
-        refreshTag = NO;
-    }
 }
 
 #pragma mark - Protocol: UPnPDBObserver

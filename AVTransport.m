@@ -71,9 +71,8 @@ static NSString *iid = @"0";                // p. 16 - AVTransport:1 Service Tem
     }
 }
 
-#pragma mark - get & check URI
+#pragma mark - get URI
 
-// return the right uri for a item
 - (NSString *)getUriForItem: (MediaServer1ItemObject *)item
 {
     NSString *uri;
@@ -366,7 +365,6 @@ static NSString *iid = @"0";                // p. 16 - AVTransport:1 Service Tem
         
         if ([newState isEqualToString:@"STOPPED"])
         {
-            NSLog(@"Track stopped!");
         }
     }
 }
