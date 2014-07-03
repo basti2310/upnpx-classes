@@ -109,16 +109,15 @@
 
 #pragma mark - Protocol: UPnPDBObserver
  
-- (void)UPnPDDeviceAdded:(UPnPDB*)sender device:(BasicUPnPDevice *) device
+- (void)UPnPDBUpdated:(UPnPDB *)sender
 {
-    NSLog(@"device added: %@", [otherFunctions nameOfUPnPDevice:device]);
+    NSLog(@"number of devices: %d", self.upnpDevices.count);
     [self performSelectorOnMainThread:@selector(searchForDevices) withObject:nil waitUntilDone:YES];
 }
 
-- (void)UPnPDDeviceRemoved:(UPnPDB*)sender device:(BasicUPnPDevice *) device
+- (void)UPnPDBWillUpdate:(UPnPDB *)sender
 {
-    NSLog(@"device removed: %@", [otherFunctions nameOfUPnPDevice:device]);
-    [self performSelectorOnMainThread:@selector(searchForDevices) withObject:nil waitUntilDone:YES];
+    
 }
 
 @end
