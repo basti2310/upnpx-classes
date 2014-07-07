@@ -83,4 +83,23 @@ static ContentDirectory *contentDir = nil;
     return [metaData copy];
 }
 
+- (NSArray *)browseMetaDataForRadioWithMediaItem: (MediaServer1ItemObject *)mediaItem andDevice: (MediaServer1Device *)device
+{
+    NSMutableArray *metaDataRadio = [[NSMutableArray alloc] init];
+    
+	NSMutableString *metaData = [[NSMutableString alloc] init];
+	NSMutableString *outTotalMatches = [[NSMutableString alloc] init];
+	NSMutableString *outNumberReturned = [[NSMutableString alloc] init];
+	NSMutableString *outUpdateID = [[NSMutableString alloc] init];
+	
+	[[device contentDirectory] BrowseWithObjectID:[mediaItem objectID] BrowseFlag:@"BrowseMetadata" Filter:@"*" StartingIndex:@"0" RequestedCount:@"1" SortCriteria:@"+dc:title" OutResult:metaData OutNumberReturned:outNumberReturned OutTotalMatches:outTotalMatches OutUpdateID:outUpdateID];
+    
+    [metaDataRadio removeAllObjects];
+    NSData *didl = [metaData dataUsingEncoding:NSUTF8StringEncoding];
+    MediaServerBasicObjectParser *parser = [[MediaServerBasicObjectParser alloc] initWithMediaObjectArray:metaDataRadio itemsOnly:YES];
+    [parser parseFromData:didl];
+
+    return [metaDataRadio copy];
+}
+
 @end

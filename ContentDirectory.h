@@ -20,5 +20,6 @@
 - (NSArray *)browseContentWithDevice: (MediaServer1Device *)device andRootID: (NSString *)rootid;
 - (NSString *)browseMetaDataWithMediaItem: (MediaServer1ItemObject *)mediaItem andDevice: (MediaServer1Device *)device;
 - (NSString *)browseMetaDataWithMediaContainer: (MediaServer1ContainerObject *)mediaContainer andDevice: (MediaServer1Device *)device;
+- (NSArray *)browseMetaDataForRadioWithMediaItem: (MediaServer1ItemObject *)mediaItem andDevice: (MediaServer1Device *)device;
 
 @end

@@ -80,7 +80,6 @@ static NSString *iid = @"0";                // p. 16 - AVTransport:1 Service Tem
     for (int i = 0; i < item.resources.count; i++)
     {
         MediaServer1ItemRes *itemRes = item.resources[i];
-        NSLog(@"// item res: %@", item.protocolInfo);
 
         NSRange range1 = [itemRes.protocolInfo rangeOfString:@"http-get:" options:NSCaseInsensitiveSearch];
         NSRange range2 = [itemRes.protocolInfo rangeOfString:@"x-file-cifs:" options:NSCaseInsensitiveSearch];
@@ -142,8 +141,6 @@ static NSString *iid = @"0";                // p. 16 - AVTransport:1 Service Tem
     // get metaData
     NSString *metaData = [[ContentDirectory getInstance] browseMetaDataWithMediaItem:(MediaServer1ItemObject *)item andDevice:server];
     
-    NSLog(@"// meta data item: %@", metaData);
-    
     // get uri
     NSString *uri = [self getUriForItem:(MediaServer1ItemObject *)item];
     
@@ -204,15 +201,21 @@ static NSString *iid = @"0";                // p. 16 - AVTransport:1 Service Tem
         return -1;
     }
     
+    // get meta data
+    NSArray *metaDataItem = [[ContentDirectory getInstance] browseMetaDataForRadioWithMediaItem:item andDevice:server];
+    NSString *metaData = @"";
+    
+    if (metaDataItem.count > 0)
+    {
+        metaData = [(MediaServer1ItemObject *)metaDataItem[0] resMD];
+    }
+    else
+    {
+        NSLog(@"error: no meta data for radio");
+    }
+    
     // check uri
     NSString *uri = [self getUriForItem:item];
-    
-    NSLog(@"// radio uri: %@", uri);
-    
-    // get meta data
-    NSString *metaData = [[ContentDirectory getInstance] browseMetaDataWithMediaItem:item andDevice:server];
-    
-    NSLog(@"// meta data radio: %@", metaData);
     
     if ([uri isEqualToString:@"error"])     // render can not play object with this uri
     {
@@ -227,9 +230,8 @@ static NSString *iid = @"0";                // p. 16 - AVTransport:1 Service Tem
     if([[renderer avTransportService] isObserver:(BasicUPnPServiceObserver*)self] == NO)
         [[renderer avTransportService] addObserver:(BasicUPnPServiceObserver*)self];
     
-    
     // Play
-    [[renderer avTransport] SetAVTransportURIWithInstanceID:iid CurrentURI:uri CurrentURIMetaData:[metaData XMLEscape]];        // p. 18 - AVTransport:1 Service Template Version 1.01
+    [[renderer avTransport] SetAVTransportURIWithInstanceID:iid CurrentURI:[uri XMLEscape] CurrentURIMetaData:[metaData XMLEscape]];        // p. 18 - AVTransport:1 Service Template Version 1.01
     [[renderer avTransport] PlayWithInstanceID:iid Speed:@"1"];                                                                 // p. 26 - AVTransport:1 Service Template Version 1.01
     
     return 0;
