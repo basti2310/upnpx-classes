@@ -20,6 +20,7 @@
 
 - (int)play: (MediaServer1BasicObject *)item;
 - (int)playPlaylist: (MediaServer1ContainerObject *)object;
+- (int)playRadio: (MediaServer1ItemObject *)object;
 - (int)replay;
 - (int)stop;
 - (int)pause;

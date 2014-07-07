@@ -18,9 +18,6 @@
 
 
 @implementation otherFunctions
-{
-
-}
 
 // returns the name of a media device
 + (NSString *)nameOfUPnPDevice: (id)device

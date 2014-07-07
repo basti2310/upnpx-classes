@@ -76,15 +76,17 @@ static NSString *iid = @"0";                // p. 16 - AVTransport:1 Service Tem
 - (NSString *)getUriForItem: (MediaServer1ItemObject *)item
 {
     NSString *uri;
-    
+        
     for (int i = 0; i < item.resources.count; i++)
     {
         MediaServer1ItemRes *itemRes = item.resources[i];
+        NSLog(@"// item res: %@", item.protocolInfo);
 
         NSRange range1 = [itemRes.protocolInfo rangeOfString:@"http-get:" options:NSCaseInsensitiveSearch];
         NSRange range2 = [itemRes.protocolInfo rangeOfString:@"x-file-cifs:" options:NSCaseInsensitiveSearch];
+        NSRange range3 = [itemRes.protocolInfo rangeOfString:@"x-sonosapi-stream:" options:NSCaseInsensitiveSearch];
         
-        if((range1.location == 0) || (range2.location == 0))
+        if((range1.location == 0) || (range2.location == 0) || (range3.location == 0))
         {
             uri = [item.uriCollection objectForKey:itemRes.protocolInfo];
             break;
@@ -140,10 +142,10 @@ static NSString *iid = @"0";                // p. 16 - AVTransport:1 Service Tem
     // get metaData
     NSString *metaData = [[ContentDirectory getInstance] browseMetaDataWithMediaItem:(MediaServer1ItemObject *)item andDevice:server];
     
+    NSLog(@"// meta data item: %@", metaData);
+    
     // get uri
     NSString *uri = [self getUriForItem:(MediaServer1ItemObject *)item];
-    
-    [[renderer avTransport] SetPlayModeWithInstanceID:iid NewPlayMode:@"NORMAL"];                                               // p. 32 - AVTransport:1 Service Template Version 1.01
     
     // stop befor start playing a new item
     [[renderer avTransport] StopWithInstanceID:iid];                                                                            // p. 25 - AVTransport:1 Service Template Version 1.01
@@ -167,6 +169,9 @@ static NSString *iid = @"0";                // p. 16 - AVTransport:1 Service Tem
     // check uri
     NSString *uri = [self getUriForContainer:object];
     
+    // get meta data
+    NSString *metaData = [[ContentDirectory getInstance] browseMetaDataWithMediaContainer:object andDevice:server];
+    
     if ([uri isEqualToString:@"error"])     // render can not play object with this uri
     {
         return 1;
@@ -180,15 +185,52 @@ static NSString *iid = @"0";                // p. 16 - AVTransport:1 Service Tem
     if([[renderer avTransportService] isObserver:(BasicUPnPServiceObserver*)self] == NO)
         [[renderer avTransportService] addObserver:(BasicUPnPServiceObserver*)self];
     
-    [[renderer avTransport] SetPlayModeWithInstanceID:iid NewPlayMode:@"NORMAL"];                           // p. 32 - AVTransport:1 Service Template Version 1.01
-    
     // stop befor start playing a new item
     [[renderer avTransport] StopWithInstanceID:iid];                                                        // p. 25 - AVTransport:1 Service Template Version 1.01
     
     // Play
     [[renderer avTransport] SetPlayModeWithInstanceID:iid NewPlayMode:@"NORMAL"];                           // p. 32 - AVTransport:1 Service Template Version 1.01
-    [[renderer avTransport] SetAVTransportURIWithInstanceID:iid CurrentURI:uri CurrentURIMetaData:@""];     // p. 18 - AVTransport:1 Service Template Version 1.01
+    [[renderer avTransport] SetAVTransportURIWithInstanceID:iid CurrentURI:uri CurrentURIMetaData:[metaData XMLEscape]];     // p. 18 - AVTransport:1 Service Template Version 1.01
     [[renderer avTransport] PlayWithInstanceID:iid Speed:@"1"];                                             // p. 26 - AVTransport:1 Service Template Version 1.01
+    
+    return 0;
+}
+
+- (int)playRadio: (MediaServer1ItemObject *)item
+{
+    // Do we have a Renderer and a server?
+    if (renderer == nil || server == nil)
+    {
+        return -1;
+    }
+    
+    // check uri
+    NSString *uri = [self getUriForItem:item];
+    
+    NSLog(@"// radio uri: %@", uri);
+    
+    // get meta data
+    NSString *metaData = [[ContentDirectory getInstance] browseMetaDataWithMediaItem:item andDevice:server];
+    
+    NSLog(@"// meta data radio: %@", metaData);
+    
+    if ([uri isEqualToString:@"error"])     // render can not play object with this uri
+    {
+        return 1;
+    }
+    else if (uri == nil)    // no uri for folder
+    {
+        return 2;
+    }
+
+    //Lazy Observer attach
+    if([[renderer avTransportService] isObserver:(BasicUPnPServiceObserver*)self] == NO)
+        [[renderer avTransportService] addObserver:(BasicUPnPServiceObserver*)self];
+    
+    
+    // Play
+    [[renderer avTransport] SetAVTransportURIWithInstanceID:iid CurrentURI:uri CurrentURIMetaData:[metaData XMLEscape]];        // p. 18 - AVTransport:1 Service Template Version 1.01
+    [[renderer avTransport] PlayWithInstanceID:iid Speed:@"1"];                                                                 // p. 26 - AVTransport:1 Service Template Version 1.01
     
     return 0;
 }

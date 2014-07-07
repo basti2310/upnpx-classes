@@ -46,9 +46,7 @@ static ContentDirectory *contentDir = nil;
     
     // p. 22 - ContentDirectory:1 Service Template Version 1.01
     [[device contentDirectory] BrowseWithObjectID:rootid BrowseFlag:@"BrowseDirectChildren" Filter:@"*" StartingIndex:@"0" RequestedCount:@"0" SortCriteria:@"+dc:title" OutResult:outResult OutNumberReturned:outNumberReturned OutTotalMatches:outTotalMatches OutUpdateID:outUpdateID];
-    
-    //NSLog(@"// meta Data: %@\n", outResult);
-    
+        
     // The collections are returned as DIDL Xml in the string 'outResult'
     // upnpx provide a helper class to parse the DIDL Xml in usable MediaServer1BasicObject object
     // (MediaServer1ContainerObject and MediaServer1ItemObject)
@@ -69,6 +67,18 @@ static ContentDirectory *contentDir = nil;
 	NSMutableString *outUpdateID = [[NSMutableString alloc] init];
 	
 	[[device contentDirectory] BrowseWithObjectID:[mediaItem objectID] BrowseFlag:@"BrowseMetadata" Filter:@"*" StartingIndex:@"0" RequestedCount:@"1" SortCriteria:@"+dc:title" OutResult:metaData OutNumberReturned:outNumberReturned OutTotalMatches:outTotalMatches OutUpdateID:outUpdateID];
+    
+    return [metaData copy];
+}
+
+- (NSString *)browseMetaDataWithMediaContainer: (MediaServer1ContainerObject *)mediaContainer andDevice: (MediaServer1Device *)device
+{
+	NSMutableString *metaData = [[NSMutableString alloc] init];
+	NSMutableString *outTotalMatches = [[NSMutableString alloc] init];
+	NSMutableString *outNumberReturned = [[NSMutableString alloc] init];
+	NSMutableString *outUpdateID = [[NSMutableString alloc] init];
+	
+	[[device contentDirectory] BrowseWithObjectID:[mediaContainer objectID] BrowseFlag:@"BrowseMetadata" Filter:@"*" StartingIndex:@"0" RequestedCount:@"1" SortCriteria:@"+dc:title" OutResult:metaData OutNumberReturned:outNumberReturned OutTotalMatches:outTotalMatches OutUpdateID:outUpdateID];
     
     return [metaData copy];
 }
