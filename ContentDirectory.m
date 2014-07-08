@@ -11,6 +11,13 @@
 
 static ContentDirectory *contentDir = nil;
 
+@interface ContentDirectory ()
+
+@property (nonatomic, strong) NSMutableArray *queueDic;
+
+
+@end
+
 @implementation ContentDirectory
 
 - (instancetype)init
@@ -18,7 +25,7 @@ static ContentDirectory *contentDir = nil;
     self = [super init];
     if (self)
     {
-
+        self.queueDic = [NSMutableArray new];
     }
     
     return self;
@@ -47,7 +54,7 @@ static ContentDirectory *contentDir = nil;
     // p. 22 - ContentDirectory:1 Service Template Version 1.01
     [[device contentDirectory] BrowseWithObjectID:rootid BrowseFlag:@"BrowseDirectChildren" Filter:@"*" StartingIndex:@"0" RequestedCount:@"0" SortCriteria:@"+dc:title" OutResult:outResult OutNumberReturned:outNumberReturned OutTotalMatches:outTotalMatches OutUpdateID:outUpdateID];
     
-    NSLog(@"// meta data: %@", outResult);
+    //NSLog(@"// meta data: %@", outResult);
         
     // The collections are returned as DIDL Xml in the string 'outResult'
     // upnpx provide a helper class to parse the DIDL Xml in usable MediaServer1BasicObject object
@@ -104,43 +111,56 @@ static ContentDirectory *contentDir = nil;
     return [metaDataRadio copy];
 }
 
-/*
-- (NSArray *)browseMediaDirectoryRecursivelyWithRootID: (NSString *)rootID onServer: (MediaServer1Device *)server
+// only for sonos
+- (NSArray *)getQueuesOfMediaDirectoryOnServer: (MediaServer1Device *)server withRootID: (NSString *)rootid
 {
-    NSMutableArray *queueUris = [[NSMutableArray alloc] init];
-    NSArray *mediaObjects = [self browseContentWithDevice:server andRootID:rootID];
+    NSMutableArray *queueContainer = [NSMutableArray new];
+    NSArray *mediaObjects = [self browseContentWithDevice:server andRootID:rootid];
     
-    for (MediaServer1BasicObject *item in mediaObjects)
+    for (MediaServer1BasicObject *object in mediaObjects)
     {
-        if (item.isContainer && [item.objectClass isEqualToString:@"object.container.playlistContainer"])
+        if (object.isContainer)
         {
-            NSLog(@"// folder: %@", item.title);
+            MediaServer1ContainerObject *container = (MediaServer1ContainerObject *)object;
+            NSRange rangeName = [container.title rangeOfString:@"queue" options:NSCaseInsensitiveSearch];
+            NSRange rangeUri;
             
-            for (NSString *uri in [(MediaServer1ContainerObject *)item uris])
+            if (container.uris.count > 0)
             {
-                NSRange range = [uri rangeOfString:@"x-rincon-queue:" options:NSCaseInsensitiveSearch];
+                rangeUri = [container.uris[0] rangeOfString:@"x-rincon-queue:" options:NSCaseInsensitiveSearch];
+            }
+            
+            if (rangeName.location != NSNotFound)
+            {
+                [queueContainer addObject:container];
                 
-                if (range.location == 0)
+                if (container.uris.count > 0)
                 {
-                    [queueUris addObject:uri];
+                    if (rangeUri.location != NSNotFound)
+                    {
+                        [self.queueDic addObject:container.uris[0]];
+                    }
+                }
+            }
+            else if (container.uris.count > 0)
+            {
+                if (rangeUri.location != NSNotFound)
+                {
+                    [self.queueDic addObject:container.uris[0]];
                 }
             }
         }
     }
     
-    if (queueUris.count <= 0)
+    if (self.queueDic.count <= 0)
     {
-        for (MediaServer1BasicObject *item in mediaObjects)
+        for (MediaServer1ContainerObject *container in queueContainer)
         {
-            if (item.isContainer)
-            {
-                [self browseMediaDirectoryRecursivelyWithRootID:item.objectID onServer:server];
-            }
+            [self getQueuesOfMediaDirectoryOnServer:server withRootID:container.objectID];
         }
     }
     
-    return [queueUris copy];
+    return [self.queueDic copy];
 }
-*/
 
 @end

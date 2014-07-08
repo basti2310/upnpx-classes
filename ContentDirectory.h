@@ -22,4 +22,6 @@
 - (NSString *)browseMetaDataWithMediaContainer: (MediaServer1ContainerObject *)mediaContainer andDevice: (MediaServer1Device *)device;
 - (NSArray *)browseMetaDataForRadioWithMediaItem: (MediaServer1ItemObject *)mediaItem andDevice: (MediaServer1Device *)device;
 
+- (NSArray *)getQueuesOfMediaDirectoryOnServer: (MediaServer1Device *)server withRootID: (NSString *)rootid;
+
 @end

@@ -245,8 +245,6 @@ static NSString *iid = @"0";                // p. 16 - AVTransport:1 Service Tem
         return -1;
     }
     
-    NSLog(@"// add to queue");
-    
     //Lazy Observer attach
     if([[renderer avTransportService] isObserver:(BasicUPnPServiceObserver*)self] == NO)
         [[renderer avTransportService] addObserver:(BasicUPnPServiceObserver*)self];
@@ -456,6 +454,7 @@ static NSString *iid = @"0";                // p. 16 - AVTransport:1 Service Tem
         
         if ([newState isEqualToString:@"STOPPED"])
         {
+            
         }
     }
 }
