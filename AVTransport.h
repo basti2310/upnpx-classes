@@ -21,6 +21,7 @@
 - (int)play: (MediaServer1BasicObject *)item;
 - (int)playPlaylist: (MediaServer1ContainerObject *)object;
 - (int)playRadio: (MediaServer1ItemObject *)object;
+- (int)playTrackSonos: (MediaServer1ItemObject *)item withQueue: (NSString *)queueUri;
 - (int)replay;
 - (int)stop;
 - (int)pause;

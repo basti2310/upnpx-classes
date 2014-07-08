@@ -46,6 +46,8 @@ static ContentDirectory *contentDir = nil;
     
     // p. 22 - ContentDirectory:1 Service Template Version 1.01
     [[device contentDirectory] BrowseWithObjectID:rootid BrowseFlag:@"BrowseDirectChildren" Filter:@"*" StartingIndex:@"0" RequestedCount:@"0" SortCriteria:@"+dc:title" OutResult:outResult OutNumberReturned:outNumberReturned OutTotalMatches:outTotalMatches OutUpdateID:outUpdateID];
+    
+    NSLog(@"// meta data: %@", outResult);
         
     // The collections are returned as DIDL Xml in the string 'outResult'
     // upnpx provide a helper class to parse the DIDL Xml in usable MediaServer1BasicObject object
@@ -101,5 +103,44 @@ static ContentDirectory *contentDir = nil;
 
     return [metaDataRadio copy];
 }
+
+/*
+- (NSArray *)browseMediaDirectoryRecursivelyWithRootID: (NSString *)rootID onServer: (MediaServer1Device *)server
+{
+    NSMutableArray *queueUris = [[NSMutableArray alloc] init];
+    NSArray *mediaObjects = [self browseContentWithDevice:server andRootID:rootID];
+    
+    for (MediaServer1BasicObject *item in mediaObjects)
+    {
+        if (item.isContainer && [item.objectClass isEqualToString:@"object.container.playlistContainer"])
+        {
+            NSLog(@"// folder: %@", item.title);
+            
+            for (NSString *uri in [(MediaServer1ContainerObject *)item uris])
+            {
+                NSRange range = [uri rangeOfString:@"x-rincon-queue:" options:NSCaseInsensitiveSearch];
+                
+                if (range.location == 0)
+                {
+                    [queueUris addObject:uri];
+                }
+            }
+        }
+    }
+    
+    if (queueUris.count <= 0)
+    {
+        for (MediaServer1BasicObject *item in mediaObjects)
+        {
+            if (item.isContainer)
+            {
+                [self browseMediaDirectoryRecursivelyWithRootID:item.objectID onServer:server];
+            }
+        }
+    }
+    
+    return [queueUris copy];
+}
+*/
 
 @end

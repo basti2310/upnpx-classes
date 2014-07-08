@@ -237,6 +237,45 @@ static NSString *iid = @"0";                // p. 16 - AVTransport:1 Service Tem
     return 0;
 }
 
+- (int)playTrackSonos: (MediaServer1ItemObject *)item withQueue: (NSString *)queueUri
+{
+    // Do we have a Renderer and a server?
+    if (renderer == nil || server == nil)
+    {
+        return -1;
+    }
+    
+    NSLog(@"// add to queue");
+    
+    //Lazy Observer attach
+    if([[renderer avTransportService] isObserver:(BasicUPnPServiceObserver*)self] == NO)
+        [[renderer avTransportService] addObserver:(BasicUPnPServiceObserver*)self];
+    
+    // get metaData
+    NSString *metaData = [[ContentDirectory getInstance] browseMetaDataWithMediaItem:item andDevice:server];
+    
+    // get uri
+    NSString *uri = [self getUriForItem:item];
+    
+    NSString *firstTrack = @"1";            // place the track as the first in the queue
+    NSString *nextTrack = @"2";             // next track is track nr 2
+    NSString *trackNumberInQueue = @"1";    // go to track nr. 1 in queue
+    
+    // add the uri of a item to the queue
+    [[renderer avTransport] AddURIToQueueWithInstanceID:iid URI:uri MetaData:[metaData XMLEscape] DesiredFirstTrackNumberEnqueued:firstTrack EnqueueAsNext:nextTrack];
+    
+    // play the current queue
+    [[renderer avTransport] SetAVTransportURIWithInstanceID:iid CurrentURI:queueUri CurrentURIMetaData:@""];
+    
+    // seek to the track
+    [[renderer avTransport] SeekWithInstanceID:iid Unit:@"TRACK_NR" Target:trackNumberInQueue];
+    
+    // play the track
+    [[renderer avTransport] PlayWithInstanceID:iid Speed:@"1"];
+    
+    return 0;
+}
+
 - (int)replay
 {
     // Do we have a Renderer?
@@ -244,7 +283,7 @@ static NSString *iid = @"0";                // p. 16 - AVTransport:1 Service Tem
     {
         return -1;
     }
-    
+
     //Lazy Observer attach
     if([[renderer avTransportService] isObserver:(BasicUPnPServiceObserver*)self] == NO)
         [[renderer avTransportService] addObserver:(BasicUPnPServiceObserver*)self];
