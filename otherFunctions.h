@@ -10,7 +10,7 @@
 
 #define URN_SERVICE_RENDERING_CONTROL_1     @"urn:schemas-upnp-org:service:RenderingControl:1"
 #define URN_SERVICE_CONTENT_DIRECTORY_1     @"urn:schemas-upnp-org:service:ContentDirectory:1"
-#define URN_SERVICE_AVTRANSPORT_1            @"urn:schemas-upnp-org:service:AVTransport:1"
+#define URN_SERVICE_AVTRANSPORT_1           @"urn:schemas-upnp-org:service:AVTransport:1"
 
 @interface OtherFunctions : NSObject
 
@@ -34,5 +34,10 @@
 
 // converts a float value into a time string (01:45:33)
 + (NSString *)floatIntoTimeString: (int)value;
+
+
+// only for sonso
+// get the correct url for albumArt
++ (NSString *)getURLForAlbumArt: (NSString *)albumArt forRenderer: (MediaRenderer1Device *)renderer;
 
 @end

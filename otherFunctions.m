@@ -111,4 +111,21 @@
     return [NSString stringWithFormat:@"%@:%@:%@", hourStr, minStr, secStr];
 }
 
+// decodes an url
++ (NSString *)decodeUrl: (NSString *)encoded
+{
+    NSString *decoded = (__bridge_transfer NSString *)CFURLCreateStringByReplacingPercentEscapesUsingEncoding(NULL, (CFStringRef)encoded, CFSTR(""), kCFStringEncodingUTF8);
+    return decoded;
+}
+
+// only for sonso
+// get the correct url for albumArt
++ (NSString *)getURLForAlbumArt: (NSString *)albumArt forRenderer: (MediaRenderer1Device *)renderer
+{
+    NSString *alrbumArtDecoded = (__bridge_transfer NSString *)CFURLCreateStringByReplacingPercentEscapesUsingEncoding(NULL, (CFStringRef)albumArt, CFSTR(""), kCFStringEncodingUTF8);
+    NSString *url = [NSString stringWithFormat:@"http://%@:%@%@", renderer.baseURL.host, renderer.baseURL.port, alrbumArtDecoded];
+    
+    return url;
+}
+
 @end
