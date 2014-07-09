@@ -12,7 +12,7 @@
 #define URN_SERVICE_CONTENT_DIRECTORY_1     @"urn:schemas-upnp-org:service:ContentDirectory:1"
 #define URN_SERVICE_AVTRANSPORT_1            @"urn:schemas-upnp-org:service:AVTransport:1"
 
-@interface otherFunctions : NSObject
+@interface OtherFunctions : NSObject
 
 // returns the name of a media device
 + (NSString *)nameOfUPnPDevice: (id)device;

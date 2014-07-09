@@ -6,18 +6,18 @@
 //  Copyright (c) 2014 easyMOBIZ. All rights reserved.
 //
 
-#import "otherFunctions.h"
+#import "OtherFunctions.h"
 #import "UPnPManager.h"
 #import "MediaRenderer1Device.h"
 #import "AVTransport.h"
 
 
-@interface otherFunctions ()
+@interface OtherFunctions ()
 
 @end
 
 
-@implementation otherFunctions
+@implementation OtherFunctions
 
 // returns the name of a media device
 + (NSString *)nameOfUPnPDevice: (id)device

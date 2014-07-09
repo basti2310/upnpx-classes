@@ -10,7 +10,7 @@
 #import "StateVariable.h"
 #import "StateVariableRange.h"
 #import "StateVariableList.h"
-#import "otherFunctions.h"
+#import "OtherFunctions.h"
 
 @implementation StateVariableRangeList
 

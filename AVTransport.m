@@ -9,7 +9,7 @@
 #import "AVTransport.h"
 #import "BasicUPnPService.h"
 #import "MediaServerBasicObjectParser.h"
-#import "otherFunctions.h"
+#import "OtherFunctions.h"
 #import "ContentDirectory.h"
 #import "CocoaTools.h"
 
@@ -144,6 +144,8 @@ static NSString *iid = @"0";                // p. 16 - AVTransport:1 Service Tem
     
     // get uri
     NSString *uri = [self getUriForItem:(MediaServer1ItemObject *)item];
+    
+    NSLog(@"// uri: %@", uri);
     
     // stop befor start playing a new item
     [[renderer avTransport] StopWithInstanceID:iid];                                                                            // p. 25 - AVTransport:1 Service Template Version 1.01
@@ -286,7 +288,7 @@ static NSString *iid = @"0";                // p. 16 - AVTransport:1 Service Tem
     //Lazy Observer attach
     if([[renderer avTransportService] isObserver:(BasicUPnPServiceObserver*)self] == NO)
         [[renderer avTransportService] addObserver:(BasicUPnPServiceObserver*)self];
-    
+        
     // get metaData
     NSString *metaData = [[ContentDirectory getInstance] browseMetaDataWithMediaContainer:container andDevice:server];
     

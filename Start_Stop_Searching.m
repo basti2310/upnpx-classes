@@ -13,7 +13,7 @@
 #import "MediaServer1ContainerObject.h"
 #import "MediaServer1Device.h"
 #import "MediaRenderer1Device.h"
-#import "otherFunctions.h"
+#import "OtherFunctions.h"
 #import "UPnPDB.h"
 
 
