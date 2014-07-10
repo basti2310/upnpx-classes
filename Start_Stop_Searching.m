@@ -8,13 +8,6 @@
 
 #import "Start_Stop_Searching.h"
 #import "UPnPManager.h"
-#import "MediaServerBasicObjectParser.h"
-#import "MediaServer1ItemObject.h"
-#import "MediaServer1ContainerObject.h"
-#import "MediaServer1Device.h"
-#import "MediaRenderer1Device.h"
-#import "OtherFunctions.h"
-#import "UPnPDB.h"
 
 
 @interface Start_Stop_Searching ()
@@ -73,7 +66,7 @@
     NSLog(@"stop searching ...");
     
     [[[UPnPManager GetInstance] SSDP] stopSSDP];
-    [[[UPnPManager GetInstance] upnpEvents] stop];  // HACK
+    [[[UPnPManager GetInstance] upnpEvents] stop];
     
     [self.db removeObserver:(UPnPDBObserver *)self];
     
@@ -81,7 +74,7 @@
     self.db = nil;
 }
 
-// search for DMS and DMR and save them into a array
+// search for DMS and DMR and save them into an array
 // https://code.google.com/p/upnpx/wiki/TutorialDescription
 - (void)searchForDevices
 {

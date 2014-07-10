@@ -7,11 +7,12 @@
 //
 
 #import "AVTransport.h"
-#import "BasicUPnPService.h"
 #import "MediaServerBasicObjectParser.h"
-#import "OtherFunctions.h"
 #import "ContentDirectory.h"
 #import "CocoaTools.h"
+
+#define ITEM_PROTOCOLS          @[@"http-get:", @"x-file-cifs:", @"x-sonosapi-stream:"]
+#define CONTAINER_PROTOCOLS     @[@"http-get:", @"x-file-cifs:", @"x-rincon-playlist:", @"file:"]
 
 static AVTransport *avTransport = nil;
 static NSString *iid = @"0";                // p. 16 - AVTransport:1 Service Template Version 1.01
@@ -20,7 +21,6 @@ static NSString *iid = @"0";                // p. 16 - AVTransport:1 Service Tem
                                             // p. 39/2.5.1 - RenderingControl:1 Service Template Version 1.01
 
 @interface AVTransport ()
-
 
 @end
 
@@ -75,64 +75,65 @@ static NSString *iid = @"0";                // p. 16 - AVTransport:1 Service Tem
 
 - (NSString *)getUriForItem: (MediaServer1ItemObject *)item
 {
-    NSString *uri;
-        
-    for (int i = 0; i < item.resources.count; i++)
+    if (item.resources.count <= 0)  // no uri for item
     {
-        MediaServer1ItemRes *itemRes = item.resources[i];
-
-        NSRange range1 = [itemRes.protocolInfo rangeOfString:@"http-get:" options:NSCaseInsensitiveSearch];
-        NSRange range2 = [itemRes.protocolInfo rangeOfString:@"x-file-cifs:" options:NSCaseInsensitiveSearch];
-        NSRange range3 = [itemRes.protocolInfo rangeOfString:@"x-sonosapi-stream:" options:NSCaseInsensitiveSearch];
-        
-        if((range1.location == 0) || (range2.location == 0) || (range3.location == 0))
-        {
-            uri = [item.uriCollection objectForKey:itemRes.protocolInfo];
-            break;
-        }
-        else
-            uri = nil;
+        return  nil;
     }
     
-    return uri;
+    for (MediaServer1ItemRes *itemRes in item.resources)
+    {
+        NSArray *prtocols = ITEM_PROTOCOLS;
+        
+        for (NSString *protocol in prtocols)
+        {
+            NSRange protocolRange = [itemRes.protocolInfo rangeOfString:protocol options:NSCaseInsensitiveSearch];
+            
+            if (protocolRange.location != NSNotFound)
+            {
+                return [item.uriCollection objectForKey:itemRes.protocolInfo];
+            }
+        }
+    }
+    
+    return @"error";    // false protocol type for uri
 }
 
 - (NSString *)getUriForContainer: (MediaServer1ContainerObject *)container
 {
-    if (container.uris.count == 0)
+    if (container.uris.count <= 0)  // no uri for item
     {
         return nil;
     }
     
     for (NSString *uri in container.uris)
     {
-        NSRange range1 = [uri rangeOfString:@"http-get:" options:NSCaseInsensitiveSearch];
-        NSRange range2 = [uri rangeOfString:@"x-file-cifs:" options:NSCaseInsensitiveSearch];
-        NSRange range3 = [uri rangeOfString:@"x-rincon-playlist:" options:NSCaseInsensitiveSearch];
-        NSRange range4 = [uri rangeOfString:@"file:" options:NSCaseInsensitiveSearch];
+        NSArray *prtocols = CONTAINER_PROTOCOLS;
         
-        if((range1.location == 0) || (range2.location == 0) || (range3.location == 0) || (range4.location == 0))
+        for (NSString *protocol in prtocols)
         {
-            return uri;
+            NSRange protocolRange = [uri rangeOfString:protocol options:NSCaseInsensitiveSearch];
+            
+            if (protocolRange.location != NSNotFound)
+            {
+                return uri;
+            }
         }
     }
     
-    return @"error";
+    return @"error";    // false protocol type for uri
 }
 
 #pragma mark - AVTransport Functions
 
 - (int)play: (MediaServer1BasicObject *)item
 {
-    // Do we have a Renderer and a server?
-    if (renderer == nil || server == nil)
-    {
-        return -1;
-    }
-    
-    if (item.isContainer)  // use other function -> - (int)playPlaylist: (MediaServer1ContainerObject *)object
+    if (renderer == nil || server == nil)   // no renderer or server
     {
         return 1;
+    }
+    else if (item.isContainer)  // use other function -> - (int)playPlaylist: (MediaServer1ContainerObject *)object
+    {
+        return 2;
     }
     
     //Lazy Observer attach
@@ -145,9 +146,17 @@ static NSString *iid = @"0";                // p. 16 - AVTransport:1 Service Tem
     // get uri
     NSString *uri = [self getUriForItem:(MediaServer1ItemObject *)item];
     
-    NSLog(@"// uri: %@", uri);
+    if (uri == nil)     // nor uri for item
+    {
+        return 3;
+    }
+    else if ([uri isEqualToString:@"error"])    // false protocol type for uri
+    {
+        return 4;
+    }
     
     // stop befor start playing a new item
+    // not every renderer needs this
     [[renderer avTransport] StopWithInstanceID:iid];                                                                            // p. 25 - AVTransport:1 Service Template Version 1.01
     
     // Play
@@ -169,9 +178,6 @@ static NSString *iid = @"0";                // p. 16 - AVTransport:1 Service Tem
     // check uri
     NSString *uri = [self getUriForContainer:object];
     
-    // get meta data
-    NSString *metaData = [[ContentDirectory getInstance] browseMetaDataWithMediaContainer:object andDevice:server];
-    
     if ([uri isEqualToString:@"error"])     // render can not play object with this uri
     {
         return 1;
@@ -181,11 +187,15 @@ static NSString *iid = @"0";                // p. 16 - AVTransport:1 Service Tem
         return 2;
     }
     
+    // get meta data
+    NSString *metaData = [[ContentDirectory getInstance] browseMetaDataWithMediaContainer:object andDevice:server];
+    
     //Lazy Observer attach
     if([[renderer avTransportService] isObserver:(BasicUPnPServiceObserver*)self] == NO)
         [[renderer avTransportService] addObserver:(BasicUPnPServiceObserver*)self];
     
     // stop befor start playing a new item
+    // not every renderer needs this
     [[renderer avTransport] StopWithInstanceID:iid];                                                        // p. 25 - AVTransport:1 Service Template Version 1.01
     
     // Play
@@ -201,32 +211,27 @@ static NSString *iid = @"0";                // p. 16 - AVTransport:1 Service Tem
     // Do we have a Renderer and a server?
     if (renderer == nil || server == nil)
     {
-        return -1;
+        return 1;
     }
-    
-    // get meta data
-    NSArray *metaDataItem = [[ContentDirectory getInstance] browseMetaDataForRadioWithMediaItem:item andDevice:server];
-    NSString *metaData = @"";
-    
-    if (metaDataItem.count > 0)
-    {
-        metaData = [(MediaServer1ItemObject *)metaDataItem[0] resMD];
-    }
-    else
-    {
-        NSLog(@"error: no meta data for radio");
-    }
-    
+
     // check uri
     NSString *uri = [self getUriForItem:item];
     
     if ([uri isEqualToString:@"error"])     // render can not play object with this uri
     {
-        return 1;
+        return 2;
     }
     else if (uri == nil)    // no uri for folder
     {
-        return 2;
+        return 3;
+    }
+    
+    // get meta data
+    NSString *metaData = [[ContentDirectory getInstance] browseMetaDataForRadioWithMediaItem:item andDevice:server];
+    
+    if (metaData == nil)    // not meta data for radio
+    {
+        return 4;
     }
 
     //Lazy Observer attach
@@ -245,7 +250,7 @@ static NSString *iid = @"0";                // p. 16 - AVTransport:1 Service Tem
     // Do we have a Renderer and a server?
     if (renderer == nil || server == nil)
     {
-        return -1;
+        return 1;
     }
     
     //Lazy Observer attach
@@ -257,6 +262,15 @@ static NSString *iid = @"0";                // p. 16 - AVTransport:1 Service Tem
     
     // get uri
     NSString *uri = [self getUriForItem:item];
+    
+    if ([uri isEqualToString:@"error"])     // render can not play object with this uri
+    {
+        return 2;
+    }
+    else if (uri == nil)    // no uri for folder
+    {
+        return 3;
+    }
     
     NSString *firstTrack = @"1";            // place the track as the first in the queue
     NSString *nextTrack = @"2";             // next track is track nr 2
@@ -282,7 +296,7 @@ static NSString *iid = @"0";                // p. 16 - AVTransport:1 Service Tem
     // Do we have a Renderer and a server?
     if (renderer == nil || server == nil)
     {
-        return -1;
+        return 1;
     }
     
     //Lazy Observer attach
@@ -294,6 +308,15 @@ static NSString *iid = @"0";                // p. 16 - AVTransport:1 Service Tem
     
     // get uri
     NSString *uri = [self getUriForContainer:container];
+    
+    if ([uri isEqualToString:@"error"])     // render can not play object with this uri
+    {
+        return 2;
+    }
+    else if (uri == nil)    // no uri for folder
+    {
+        return 3;
+    }
     
     NSString *firstTrack = @"0";            // place the track as the first in the queue
     NSString *nextTrack = @"1";             // next track is track nr 2

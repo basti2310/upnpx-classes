@@ -92,7 +92,10 @@ static ContentDirectory *contentDir = nil;
     return [metaData copy];
 }
 
-- (NSArray *)browseMetaDataForRadioWithMediaItem: (MediaServer1ItemObject *)mediaItem andDevice: (MediaServer1Device *)device
+
+
+// only for sonos
+- (NSString *)browseMetaDataForRadioWithMediaItem: (MediaServer1ItemObject *)mediaItem andDevice: (MediaServer1Device *)device
 {
     NSMutableArray *metaDataRadio = [[NSMutableArray alloc] init];
     
@@ -107,11 +110,15 @@ static ContentDirectory *contentDir = nil;
     NSData *didl = [metaData dataUsingEncoding:NSUTF8StringEncoding];
     MediaServerBasicObjectParser *parser = [[MediaServerBasicObjectParser alloc] initWithMediaObjectArray:metaDataRadio itemsOnly:YES];
     [parser parseFromData:didl];
+    
+    if (metaDataRadio.count > 0)
+    {
+        return [(MediaServer1ItemObject *)metaDataRadio[0] resMD];
+    }
 
-    return [metaDataRadio copy];
+    return nil;
 }
 
-// only for sonos
 - (NSArray *)getQueuesOfMediaDirectoryOnServer: (MediaServer1Device *)server withRootID: (NSString *)rootid
 {
     NSMutableArray *queueContainer = [NSMutableArray new];
