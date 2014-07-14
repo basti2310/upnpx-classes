@@ -206,6 +206,8 @@ static NSString *iid = @"0";                // p. 16 - AVTransport:1 Service Tem
     return 0;
 }
 
+
+// only for sonos
 - (int)playRadio: (MediaServer1ItemObject *)item
 {
     // Do we have a Renderer and a server?
