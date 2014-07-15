@@ -16,6 +16,7 @@
 #define SONOS_RADIO_PROTOCOLS           @[@"x-sonosapi-radio:", @"x-sonosapi-stream:"]
 
 
+// TODO: find albumArt url
 
 @implementation SonosUPNPController
 {
@@ -30,7 +31,7 @@
     {
         queueUris = [NSMutableArray new];
         
-        [self getQueueOfMediaDirectoryOnServerWithRootID:@"0"];
+        [self getQueueOfMediaDirectoryOnServerWithRootID:UPNP_DEFAULT_ROOT_ID];
     }
     return self;
 }
@@ -40,18 +41,11 @@
 #pragma mark - AVTransport
 
 // play radio
-/*
- error code:
- 1   no renderer or server
- 2   render can not play object with this uri
- 3   no uri for item
- 4   not meta data for radio
- */
-- (int)playRadio: (MediaServer1ItemObject *)item
+- (UPNP_Error)playRadio: (MediaServer1ItemObject *)item
 {
     if (renderer == nil || server == nil)
     {
-        return 1;
+        return UPNP_Error_NoRendererServer;
     }
     
     // check uri
@@ -59,11 +53,11 @@
     
     if ([uri isEqualToString:@"error"])     // render can not play object with this uri
     {
-        return 2;
+        return UPNP_Error_RendererError;
     }
     else if (uri == nil)    // no uri for item
     {
-        return 3;
+        return UPNP_Error_NoUriForItem;
     }
     
     // get meta data
@@ -71,7 +65,7 @@
     
     if (metaData == nil)    // not meta data for radio
     {
-        return 4;
+        return UPNP_Error_Sonos_NoMetaData;
     }
     
     //Lazy Observer attach
@@ -79,25 +73,18 @@
     
     // Play
     [[renderer avTransport] SetAVTransportURIWithInstanceID:UPNP_DEFAULT_INSTANCE_ID CurrentURI:[uri XMLEscape] CurrentURIMetaData:[metaData XMLEscape]];        // p. 18 - AVTransport:1 Service Template Version 1.01
-    [[renderer avTransport] PlayWithInstanceID:UPNP_DEFAULT_INSTANCE_ID Speed:@"1"];                                                                 // p. 26 - AVTransport:1 Service Template Version 1.01
+    [[renderer avTransport] PlayWithInstanceID:UPNP_DEFAULT_INSTANCE_ID Speed:UPNP_DEFAULT_PLAY_SPEED];                                                                 // p. 26 - AVTransport:1 Service Template Version 1.01
     
-    return 0;
+    return UPNP_Error_OK;
 }
 
 
 // add item to queue and play the item
-/*
- error code:
- 1   no renderer or server
- 2   render can not play object with this uri
- 3   no uri for item
- 4   no uri for queue
- */
-- (int)playItemWithQueue: (MediaServer1BasicObject *)item
+- (UPNP_Error)playItemWithQueue: (MediaServer1BasicObject *)item
 {
     if (renderer == nil || server == nil)
     {
-        return 1;
+        return UPNP_Error_NoRendererServer;
     }
     
     //Lazy Observer attach
@@ -111,18 +98,19 @@
     
     if ([uri isEqualToString:@"error"])     // render can not play object with this uri
     {
-        return 2;
+        return UPNP_Error_RendererError;
     }
     else if (uri == nil)    // no uri for folder
     {
-        return 3;
+        return UPNP_Error_NoUriForFolder;
     }
     
     if (queueUris.count <= 0)   // no queue uri
     {
-        return 4;
+        return UPNP_Error_Sonos_NoQueueUri;
     }
     
+    // TODO: find out action for querying the number of items in the playlist so we can enqueue at the end
     NSString *firstTrack = @"1";            // place the track as the first in the queue
     NSString *nextTrack = @"2";             // next track is track nr 2
     NSString *trackNumberInQueue = @"1";    // go to track nr. 1 in queue
@@ -137,24 +125,17 @@
     [[renderer avTransport] SeekWithInstanceID:UPNP_DEFAULT_INSTANCE_ID Unit:@"TRACK_NR" Target:trackNumberInQueue];
     
     // play the track
-    [[renderer avTransport] PlayWithInstanceID:UPNP_DEFAULT_INSTANCE_ID Speed:@"1"];
+    [[renderer avTransport] PlayWithInstanceID:UPNP_DEFAULT_INSTANCE_ID Speed:UPNP_DEFAULT_PLAY_SPEED];
     
-    return 0;
+    return UPNP_Error_OK;
 }
 
 // add playlist/folder to queue and play the playlist/folder
-/*
- error code:
- 1   no renderer or server
- 2   render can not play object with this uri
- 3   no uri for folder
- 4   no uri for queue
- */
-- (int)playPlaylistOrQueue: (MediaServer1ContainerObject *)container
+- (UPNP_Error)playPlaylistOrQueue: (MediaServer1ContainerObject *)container
 {
     if (renderer == nil || server == nil)
     {
-        return 1;
+        return UPNP_Error_NoRendererServer;
     }
     
     //Lazy Observer attach
@@ -168,21 +149,23 @@
     
     if ([uri isEqualToString:@"error"])     // render can not play object with this uri
     {
-        return 2;
+        return UPNP_Error_RendererError;
     }
     else if (uri == nil)    // no uri for folder
     {
-        return 3;
+        return UPNP_Error_NoUriForFolder;
     }
     
     if (queueUris.count <= 0)   // no queue uri
     {
-        return 4;
+        return UPNP_Error_Sonos_NoQueueUri;
     }
     
     NSString *firstTrack = @"0";            // place the track as the first in the queue
     NSString *nextTrack = @"1";             // next track is track nr 2
     NSString *trackNumberInQueue = @"1";    // go to track nr. 1 in queue
+    
+    // TODO: should queue be cleared before adding items? --> need to find out UPNP action for this
     
     // add the uri of a item to the queue
     [[renderer avTransport] AddURIToQueueWithInstanceID:UPNP_DEFAULT_INSTANCE_ID URI:uri MetaData:[metaData XMLEscape] DesiredFirstTrackNumberEnqueued:firstTrack EnqueueAsNext:nextTrack];
@@ -194,9 +177,9 @@
     [[renderer avTransport] SeekWithInstanceID:UPNP_DEFAULT_INSTANCE_ID Unit:@"TRACK_NR" Target:trackNumberInQueue];
     
     // play the track
-    [[renderer avTransport] PlayWithInstanceID:UPNP_DEFAULT_INSTANCE_ID Speed:@"1"];
+    [[renderer avTransport] PlayWithInstanceID:UPNP_DEFAULT_INSTANCE_ID Speed:UPNP_DEFAULT_PLAY_SPEED];
     
-    return 0;
+    return UPNP_Error_OK;
 }
 
 
@@ -213,7 +196,7 @@
 }
 
 // returns YES, if item is a radio
-- (BOOL)isObjectRadio: (MediaServer1BasicObject *)object
++ (BOOL)canPlayRadio: (MediaServer1BasicObject *)object
 {
     NSArray *supportedRadioProtocols = SONOS_RADIO_PROTOCOLS;
     
@@ -261,6 +244,7 @@
 
 
 // find the uri for the queue
+// FIXME: this has only been tested with one Sonos and might not work with other types
 /*
  error code:
  nil    no queue or uri for queue

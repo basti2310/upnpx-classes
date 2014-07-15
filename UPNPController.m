@@ -18,7 +18,6 @@
 #define CONTAINER_PROTOCOLS     @[@"http-get:"]
 
 
-
 @implementation UPNPController
 
 
@@ -30,37 +29,40 @@
     self = [super init];
     if (self)
     {
-        self.currentBasicObject = nil;
+        NSParameterAssert(rend);
+        NSParameterAssert(serv);
         
-        renderer = rend;
         server = serv;
+        renderer = rend;
         
-        if (renderer != nil)
-        {
-            // Lazy Observer attach
-            [self lazyObserverAttachAVTransportService];
-            [self lazyObserverAttachRenderingControlService];
-        }
+        // Lazy Observer attach
+        // TODO: is it enough to register once in init and unregister once in dealloc? --> see REGISTERRRRRRRRRRRR log statements
+        [self lazyObserverAttachAVTransportService];
+        [self lazyObserverAttachRenderingControlService];
     }
     
     return self;
 }
 
-/*
- return:
- 0  generic
- 1  sonos
- */
-- (int)deviceType: (BasicUPnPDevice *)device
+- (void)dealloc
+{
+    if([[renderer avTransportService] isObserver:(BasicUPnPServiceObserver*)self] == YES)
+        [[renderer avTransportService] removeObserver:(BasicUPnPServiceObserver*)self];
+    
+    if([[renderer renderingControlService] isObserver:(BasicUPnPServiceObserver*)self] == YES)
+        [[renderer renderingControlService] removeObserver:(BasicUPnPServiceObserver*)self];
+}
+
++ (UPNPRendererType)deviceType: (BasicUPnPDevice *)device
 {
     NSRange range = [device.manufacturer rangeOfString:@"sonos" options:NSCaseInsensitiveSearch];
     
     if(range.location != NSNotFound)
     {
-        return 1;
+        return UPNPRendererType_Sonos;
     }
     
-    return 0;
+    return UPNPRendererType_Generic;
 }
 
 
@@ -70,8 +72,6 @@
 // get the folder/file hierarchy
 - (NSArray *)browseContentForRootID: (NSString *)rootid
 {
-    NSMutableArray *list = [[NSMutableArray alloc] init];
-    
     //Allocate NMSutableString's to read the results
     NSMutableString *outResult = [[NSMutableString alloc] init];
     NSMutableString *outNumberReturned = [[NSMutableString alloc] init];
@@ -79,15 +79,15 @@
     NSMutableString *outUpdateID = [[NSMutableString alloc] init];
     
     // p. 22 - ContentDirectory:1 Service Template Version 1.01
-    [[server contentDirectory] BrowseWithObjectID:rootid BrowseFlag:@"BrowseDirectChildren" Filter:@"*" StartingIndex:@"0" RequestedCount:@"0" SortCriteria:@"+dc:title" OutResult:outResult OutNumberReturned:outNumberReturned OutTotalMatches:outTotalMatches OutUpdateID:outUpdateID];
+    [[server contentDirectory] BrowseWithObjectID:rootid BrowseFlag:UPNP_DEFAULT_CONTENT_BROWSEFLAG Filter:UPNP_DEFAULT_BROWSE_FILTER StartingIndex:UPNP_DEFAULT_BROWSE_STARTINGINDEX RequestedCount:UPNP_DEFAULT_CONTENT_BROWSE_REQUESTEDCOUNT SortCriteria:UPNP_DEFAULT_BROWSE_SORTCRITERIA OutResult:outResult OutNumberReturned:outNumberReturned OutTotalMatches:outTotalMatches OutUpdateID:outUpdateID];
         
     // The collections are returned as DIDL Xml in the string 'outResult'
     // upnpx provide a helper class to parse the DIDL Xml in usable MediaServer1BasicObject object
     // (MediaServer1ContainerObject and MediaServer1ItemObject)
     // Parse the return DIDL and store all entries as objects in the 'list' array
-    [list removeAllObjects];
-    NSData *didl = [outResult dataUsingEncoding:NSUTF8StringEncoding];
+    NSMutableArray *list = [[NSMutableArray alloc] init];
     MediaServerBasicObjectParser *parser = [[MediaServerBasicObjectParser alloc] initWithMediaObjectArray:list itemsOnly:NO];
+    NSData *didl = [outResult dataUsingEncoding:NSUTF8StringEncoding];
     [parser parseFromData:didl];
     
     return [list copy];
@@ -101,7 +101,7 @@
 	NSMutableString *outNumberReturned = [[NSMutableString alloc] init];
 	NSMutableString *outUpdateID = [[NSMutableString alloc] init];
 	
-	[[server contentDirectory] BrowseWithObjectID:[object objectID] BrowseFlag:@"BrowseMetadata" Filter:@"*" StartingIndex:@"0" RequestedCount:@"1" SortCriteria:@"+dc:title" OutResult:metaData OutNumberReturned:outNumberReturned OutTotalMatches:outTotalMatches OutUpdateID:outUpdateID];
+	[[server contentDirectory] BrowseWithObjectID:[object objectID] BrowseFlag:UPNP_DEFAULT_METADAT_BROWSEFLAG Filter:UPNP_DEFAULT_BROWSE_FILTER StartingIndex:UPNP_DEFAULT_BROWSE_STARTINGINDEX RequestedCount:UPNP_DEFAULT_METADATA_BROWSE_REQUESTEDCOUNT SortCriteria:UPNP_DEFAULT_BROWSE_SORTCRITERIA OutResult:metaData OutNumberReturned:outNumberReturned OutTotalMatches:outTotalMatches OutUpdateID:outUpdateID];
     
     return [metaData copy];
 }
@@ -111,22 +111,15 @@
 #pragma mark - AVTransport
 
 // play an item
-/*
-error code:
-1   no renderer or server
-2   use other function -> - (int)playPlaylist: (MediaServer1ContainerObject *)object
-3   no uri for item
-4   false protocol type for uri
-*/
-- (int)play: (MediaServer1BasicObject *)item
+- (UPNP_Error)play: (MediaServer1BasicObject *)item
 {
     if (renderer == nil || server == nil)   // no renderer or server
     {
-        return 1;
+        return UPNP_Error_NoRendererServer;
     }
     else if (item.isContainer)  // use other function -> - (int)playPlaylist: (MediaServer1ContainerObject *)object
     {
-        return 2;
+        return UPNP_Error_UseOtherFunction;
     }
     
     // Lazy Observer attach
@@ -140,11 +133,11 @@ error code:
     
     if (uri == nil)     // no uri for item
     {
-        return 3;
+        return UPNP_Error_NoUriForItem;
     }
     else if ([uri isEqualToString:@"error"])    // false protocol type for uri
     {
-        return 4;
+        return UPNP_Error_FalseProtocolType;
     }
     
     // stop befor start playing a new item
@@ -152,25 +145,19 @@ error code:
     [[renderer avTransport] StopWithInstanceID:UPNP_DEFAULT_INSTANCE_ID];                                                                            // p. 25 - AVTransport:1 Service Template Version 1.01
     
     // Play
-    [[renderer avTransport] SetPlayModeWithInstanceID:UPNP_DEFAULT_INSTANCE_ID NewPlayMode:@"NORMAL"];                                               // p. 32 - AVTransport:1 Service Template Version 1.01
+    [[renderer avTransport] SetPlayModeWithInstanceID:UPNP_DEFAULT_INSTANCE_ID NewPlayMode:UPNP_DEFAULT_PLAY_MODE];                                               // p. 32 - AVTransport:1 Service Template Version 1.01
     [[renderer avTransport] SetAVTransportURIWithInstanceID:UPNP_DEFAULT_INSTANCE_ID CurrentURI:uri CurrentURIMetaData:[metaData XMLEscape]];        // p. 18 - AVTransport:1 Service Template Version 1.01
-    [[renderer avTransport] PlayWithInstanceID:UPNP_DEFAULT_INSTANCE_ID Speed:@"1"];                                                                 // p. 26 - AVTransport:1 Service Template Version 1.01
+    [[renderer avTransport] PlayWithInstanceID:UPNP_DEFAULT_INSTANCE_ID Speed:UPNP_DEFAULT_PLAY_SPEED];                                                                 // p. 26 - AVTransport:1 Service Template Version 1.01
     
-    return 0;
+    return UPNP_Error_OK;
 }
 
 // play a container (folder/playlist)
-/*
-error code:
-1   no renderer or server
-2   render can not play object with this uri
-3   no uri for folder
- */
-- (int)playFolderPlaylist: (MediaServer1ContainerObject *)object
+- (UPNP_Error)playFolderPlaylist: (MediaServer1ContainerObject *)object
 {
     if (renderer == nil || server == nil)     // no renderer or server
     {
-        return 1;
+        return UPNP_Error_NoRendererServer;
     }
     
     // check uri
@@ -178,11 +165,11 @@ error code:
     
     if ([uri isEqualToString:@"error"])     // render can not play object with this uri
     {
-        return 2;
+        return UPNP_Error_RendererError;
     }
     else if (uri == nil)    // no uri for folder
     {
-        return 3;
+        return UPNP_Error_NoUriForFolder;
     }
     
     // get meta data
@@ -196,43 +183,35 @@ error code:
     [[renderer avTransport] StopWithInstanceID:UPNP_DEFAULT_INSTANCE_ID];                                                        // p. 25 - AVTransport:1 Service Template Version 1.01
     
     // Play
-    [[renderer avTransport] SetPlayModeWithInstanceID:UPNP_DEFAULT_INSTANCE_ID NewPlayMode:@"NORMAL"];                           // p. 32 - AVTransport:1 Service Template Version 1.01
+    [[renderer avTransport] SetPlayModeWithInstanceID:UPNP_DEFAULT_INSTANCE_ID NewPlayMode:UPNP_DEFAULT_PLAY_MODE];                           // p. 32 - AVTransport:1 Service Template Version 1.01
     [[renderer avTransport] SetAVTransportURIWithInstanceID:UPNP_DEFAULT_INSTANCE_ID CurrentURI:uri CurrentURIMetaData:[metaData XMLEscape]];     // p. 18 - AVTransport:1 Service Template Version 1.01
-    [[renderer avTransport] PlayWithInstanceID:UPNP_DEFAULT_INSTANCE_ID Speed:@"1"];                                             // p. 26 - AVTransport:1 Service Template Version 1.01
+    [[renderer avTransport] PlayWithInstanceID:UPNP_DEFAULT_INSTANCE_ID Speed:UPNP_DEFAULT_PLAY_SPEED];                                             // p. 26 - AVTransport:1 Service Template Version 1.01
     
-    return 0;
+    return UPNP_Error_OK;
 }
 
 // if pause -> replay
-/*
- error code:
- 1  no renderer
-*/
-- (int)replay
+- (UPNP_Error)replay
 {
     if (renderer == nil)   // no renderer
     {
-        return 1;
+        return UPNP_Error_NoRendererServer;
     }
     
     // Lazy Observer attach
     [self lazyObserverAttachAVTransportService];
     
-    [[renderer avTransport] PlayWithInstanceID:UPNP_DEFAULT_INSTANCE_ID Speed:@"1"];         // p. 26 - AVTransport:1 Service Template Version 1.01
+    [[renderer avTransport] PlayWithInstanceID:UPNP_DEFAULT_INSTANCE_ID Speed:UPNP_DEFAULT_PLAY_SPEED];         // p. 26 - AVTransport:1 Service Template Version 1.01
     
-    return 0;
+    return UPNP_Error_OK;
 }
 
 // stop
-/*
- error code:
- 1  no renderer
- */
-- (int)stop
+- (UPNP_Error)stop
 {
     if (renderer == nil)   // no renderer
     {
-        return 1;
+        return UPNP_Error_NoRendererServer;
     }
     
     // Lazy Observer attach
@@ -240,19 +219,15 @@ error code:
     
     [[renderer avTransport] StopWithInstanceID:UPNP_DEFAULT_INSTANCE_ID];            // p. 25 - AVTransport:1 Service Template Version 1.01
     
-    return 0;
+    return UPNP_Error_OK;
 }
 
 // pause
-/*
- error code:
- 1  no renderer
- */
-- (int)pause
+- (UPNP_Error)pause
 {
     if (renderer == nil)   // no renderer
     {
-        return 1;
+        return UPNP_Error_NoRendererServer;
     }
     
     // Lazy Observer attach
@@ -260,19 +235,15 @@ error code:
     
     [[renderer avTransport] PauseWithInstanceID:UPNP_DEFAULT_INSTANCE_ID];       // p. 27 - AVTransport:1 Service Template Version 1.01
     
-    return 0;
+    return UPNP_Error_OK;
 }
 
 // next (works only with playlist/folder)
-/*
- error code:
- 1  no renderer
- */
-- (int)next
+- (UPNP_Error)next
 {
     if (renderer == nil)   // no renderer
     {
-        return 1;
+        return UPNP_Error_NoRendererServer;
     }
     
     // Lazy Observer attach
@@ -280,19 +251,15 @@ error code:
     
     [[renderer avTransport] NextWithInstanceID:UPNP_DEFAULT_INSTANCE_ID];        // p. 30 - AVTransport:1 Service Template Version 1.01
     
-    return 0;
+    return UPNP_Error_OK;
 }
 
 // previous (works only with playlist/folder)
-/*
- error code:
- 1  no renderer
- */
-- (int)previous
+- (UPNP_Error)previous
 {
     if (renderer == nil)   // no renderer
     {
-        return 1;
+        return UPNP_Error_NoRendererServer;
     }
     
     // Lazy Observer attach
@@ -300,21 +267,17 @@ error code:
     
     [[renderer avTransport] PreviousWithInstanceID:UPNP_DEFAULT_INSTANCE_ID];        // p. 31 - AVTransport:1 Service Template Version 1.01
     
-    return 0;
+    return UPNP_Error_OK;
 }
 
 // seek
 // mode: p. 10 & p. 15 - AVTransport:1 Service Template Version 1.01    example: @"REL_TIME"
 // target: p. 16 - AVTransport:1 Service Template Version 1.01
-/*
- error code:
- 1  no renderer
- */
-- (int)seekWithMode: (NSString *)mode andTarget: (NSString *)target
+- (UPNP_Error)seekWithMode: (NSString *)mode andTarget: (NSString *)target
 {
     if (renderer == nil)   // no renderer
     {
-        return 1;
+        return UPNP_Error_NoRendererServer;
     }
     
     // Lazy Observer attach
@@ -322,7 +285,7 @@ error code:
     
     [[renderer avTransport] SeekWithInstanceID:UPNP_DEFAULT_INSTANCE_ID Unit:mode Target:target];        // p. 29 - AVTransport:1 Service Template Version 1.01
     
-    return 0;
+    return UPNP_Error_OK;
 }
 
 // get position and track info
@@ -358,41 +321,34 @@ error code:
     NSMutableString *outRelCount = [[NSMutableString alloc] init];
     NSMutableString *outAbsCount = [[NSMutableString alloc] init];
     
-    NSMutableArray *metaDataArray = [NSMutableArray new];
-    
-    MediaServer1ItemObject *item = nil;
-    
     // Lazy Observer attach
     [self lazyObserverAttachAVTransportService];
     
     // p. 22 - AVTransport:1 Service Template Version 1.01
     [[renderer avTransport] GetPositionInfoWithInstanceID:UPNP_DEFAULT_INSTANCE_ID OutTrack:outTrack OutTrackDuration:outTrackDuration OutTrackMetaData:outTrackMetaData OutTrackURI:outTrackURI OutRelTime:outRelTime OutAbsTime:outAbsTime OutRelCount:outRelCount OutAbsCount:outAbsCount];
     
-    [metaDataArray removeAllObjects];
-    NSData *didl = [outTrackMetaData dataUsingEncoding:NSUTF8StringEncoding];
+    NSMutableArray *metaDataArray = [NSMutableArray new];
     MediaServerBasicObjectParser *parser = [[MediaServerBasicObjectParser alloc] initWithMediaObjectArray:metaDataArray itemsOnly:NO];
+    NSData *didl = [outTrackMetaData dataUsingEncoding:NSUTF8StringEncoding];
     [parser parseFromData:didl];
+    
+    NSMutableDictionary *info = [NSMutableDictionary dictionaryWithObjectsAndKeys:
+                                 outTrack,           UPNP_KEY_CURRENT_TRACK,
+                                 outTrackDuration,   UPNP_KEY_TRACK_DURATION,
+                                 outTrackMetaData,   UPNP_KEY_TRACK_METADATA,
+                                 outTrackURI,        UPNP_KEY_TRACK_URI,
+                                 outRelTime,         UPNP_KEY_REL_TIME,
+                                 outAbsTime,         UPNP_KEY_ABS_TIME,
+                                 outRelCount,        UPNP_KEY_REL_COUNT,
+                                 outAbsCount,        UPNP_KEY_ABS_COUNT,
+                                 nil];
     
     if (metaDataArray.count > 0)
     {
-        item = [metaDataArray objectAtIndex:0];
-    }
-    else
-    {
-        item = nil;
+        info[UPNP_KEY_ITEM_OBJECT] = metaDataArray[0];
     }
     
-    return [NSDictionary dictionaryWithObjectsAndKeys:
-            outTrack,           @"currentTrack",
-            outTrackDuration,   @"trackDuration",
-            outTrackMetaData,   @"trackMetaData",
-            outTrackURI,        @"trackURI",
-            outRelTime,         @"relTime",
-            outAbsTime,         @"absTime",
-            outRelCount,        @"relCount",
-            outAbsCount,        @"absCount",
-            item,               @"MediaServer1ItemObject",
-            nil];
+    return [info copy];
 }
 
 #pragma mark - helper functions
@@ -468,11 +424,14 @@ error code:
 - (void)lazyObserverAttachAVTransportService
 {
     if([[renderer avTransportService] isObserver:(BasicUPnPServiceObserver*)self] == NO)
+    {
+        NSLog(@"!!!! REGISTERRRRRRRRRRRR:lazyObserverAttachAVTransportService %@ !!!", self);
         [[renderer avTransportService] addObserver:(BasicUPnPServiceObserver*)self];
+    }
 }
 
 // converts a time string (01:45:33) into a float value
-- (int)timeStringIntoInt: (NSString *)timeString
++ (int)timeStringIntoInt: (NSString *)timeString
 {
     NSScanner *timeScanner = [NSScanner scannerWithString:timeString];
     int hours, minutes, sec;
@@ -487,7 +446,7 @@ error code:
 }
 
 // converts a float value into a time string (01:45:33)
-- (NSString *)intIntoTimeString: (int)value
++ (NSString *)intIntoTimeString: (int)value
 {
     int hour, minutes, sec;
     NSString *hourStr, *minStr, *secStr;
@@ -495,21 +454,10 @@ error code:
     hour = value / 3600;
     minutes = (value % 3600) / 60;
     sec = (value % 3600) - (minutes * 60);
-    
-    if (hour < 10)
-        hourStr = [NSString stringWithFormat:@"0%d", hour];
-    else
-        hourStr = [NSString stringWithFormat:@"%d", hour];
-    
-    if (minutes < 10)
-        minStr = [NSString stringWithFormat:@"0%d", minutes];
-    else
-        minStr = [NSString stringWithFormat:@"%d", minutes];
-    
-    if (sec < 10)
-        secStr = [NSString stringWithFormat:@"0%d", sec];
-    else
-        secStr = [NSString stringWithFormat:@"%d", sec];
+
+    hourStr = [NSString stringWithFormat:@"%02d", hour];
+    minStr = [NSString stringWithFormat:@"%02d", minutes];
+    secStr = [NSString stringWithFormat:@"%02d", sec];
     
     return [NSString stringWithFormat:@"%@:%@:%@", hourStr, minStr, secStr];
 }
@@ -520,23 +468,30 @@ error code:
 #pragma mark - Rendering
 
 // set mute for channel
-/*
- error code:
- 1  no renderer
- */
-- (int)setMute: (NSString *)mut forChannel: (NSString *)channel
+- (UPNP_Error)setMute: (BOOL)mute forChannel: (NSString *)channel
 {
     if (renderer == nil)   // no renderer
     {
-        return 1;
+        return UPNP_Error_NoRendererServer;
+    }
+    
+    NSString *muteStr;
+    
+    if (mute)
+    {
+        muteStr = @"1";
+    }
+    else
+    {
+        muteStr = @"0";
     }
     
     // Lazy Observer attach
     [self lazyObserverAttachRenderingControlService];
     
-    [[renderer renderingControl] SetMuteWithInstanceID:UPNP_DEFAULT_INSTANCE_ID Channel:channel DesiredMute:mut];        // p. 34 - RenderingControl:1 Service Template Version 1.01
+    [[renderer renderingControl] SetMuteWithInstanceID:UPNP_DEFAULT_INSTANCE_ID Channel:channel DesiredMute:muteStr];        // p. 34 - RenderingControl:1 Service Template Version 1.01
     
-    return 0;
+    return UPNP_Error_OK;
 }
 
 // get mute for channel
@@ -544,7 +499,7 @@ error code:
  error code:
  nil  no renderer
  */
-- (NSString *)getMuteForChannel: (NSString *)channel
+- (NSNumber *)getMuteForChannel: (NSString *)channel
 {
     if (renderer == nil)   // no renderer
     {
@@ -558,27 +513,23 @@ error code:
     
     [[renderer renderingControl] GetMuteWithInstanceID:UPNP_DEFAULT_INSTANCE_ID Channel:channel OutCurrentMute:outMute];     // p. 33 - RenderingControl:1 Service Template Version 1.01
     
-    return [outMute copy];
+    return [NSNumber numberWithInt:[outMute intValue]];
 }
 
 // set volume for channel
-/*
- error code:
- 1  no renderer
- */
-- (int)setVolume: (NSString *)vol forChannel: (NSString *)channel
+- (UPNP_Error)setVolume: (NSUInteger)vol forChannel: (NSString *)channel
 {
     if (renderer == nil)   // no renderer
     {
-        return 1;
+        return UPNP_Error_NoRendererServer;
     }
     
     // Lazy Observer attach
     [self lazyObserverAttachRenderingControlService];
     
-    [[renderer renderingControl] SetVolumeWithInstanceID:UPNP_DEFAULT_INSTANCE_ID Channel:channel DesiredVolume:vol];        // p. 35 - RenderingControl:1 Service Template Version 1.01
+    [[renderer renderingControl] SetVolumeWithInstanceID:UPNP_DEFAULT_INSTANCE_ID Channel:channel DesiredVolume:[NSString stringWithFormat:@"%d", (int)vol]];        // p. 35 - RenderingControl:1 Service Template Version 1.01
     
-    return 0;
+    return UPNP_Error_OK;
 }
 
 // get volume for channel
@@ -586,7 +537,7 @@ error code:
  error code:
  nil  no renderer
  */
-- (NSString *)getVolumeForChannel: (NSString *)channel
+- (NSNumber *)getVolumeForChannel: (NSString *)channel
 {
     if (renderer == nil)   // no renderer
     {
@@ -600,27 +551,23 @@ error code:
     
     [[renderer renderingControl] GetVolumeWithInstanceID:UPNP_DEFAULT_INSTANCE_ID Channel:channel OutCurrentVolume:outVolume];       // p. 35 - RenderingControl:1 Service Template Version 1.01
     
-    return [outVolume copy];
+    return [NSNumber numberWithInt:[outVolume intValue]];
 }
 
 // set brightness
-/*
- error code:
- 1  no renderer
- */
-- (int)setBrightness: (NSString *)brigh
+- (UPNP_Error)setBrightness: (NSUInteger)brigh
 {
     if (renderer == nil)   // no renderer
     {
-        return 1;
+        return UPNP_Error_NoRendererServer;
     }
     
     // Lazy Observer attach
     [self lazyObserverAttachRenderingControlService];
     
-    [[renderer renderingControl] SetBrightnessWithInstanceID:UPNP_DEFAULT_INSTANCE_ID DesiredBrightness:brigh];      // p. 22 - RenderingControl:1 Service Template Version 1.01
+    [[renderer renderingControl] SetBrightnessWithInstanceID:UPNP_DEFAULT_INSTANCE_ID DesiredBrightness:[NSString stringWithFormat:@"%d", (int)brigh]];      // p. 22 - RenderingControl:1 Service Template Version 1.01
     
-    return 0;
+    return UPNP_Error_OK;
 }
 
 // get brightness
@@ -628,7 +575,7 @@ error code:
  error code:
  nil  no renderer
  */
-- (NSString *)getBrightness
+- (NSNumber *)getBrightness
 {
     if (renderer == nil)   // no renderer
     {
@@ -642,27 +589,24 @@ error code:
     
     [[renderer renderingControl] GetBrightnessWithInstanceID:UPNP_DEFAULT_INSTANCE_ID OutCurrentBrightness:outBrightness];       // p. 22 - RenderingControl:1 Service Template Version 1.01
     
-    return [outBrightness copy];
+    return [NSNumber numberWithInt:[outBrightness intValue]];
 }
 
 // set volume DB for channel
-/*
- error code:
- 1  no renderer
- */
-- (int)setVolumeDB: (NSString *)volDB forChannel: (NSString *)channel
+// TODO: check how many decimal places are needed
+- (UPNP_Error)setVolumeDB: (float)volDB forChannel: (NSString *)channel
 {
     if (renderer == nil)   // no renderer
     {
-        return 1;
+        return UPNP_Error_NoRendererServer;
     }
     
     // Lazy Observer attach
     [self lazyObserverAttachRenderingControlService];
     
-    [[renderer renderingControl] SetVolumeDBWithInstanceID:UPNP_DEFAULT_INSTANCE_ID Channel:channel DesiredVolume:volDB];        // p. 36 - RenderingControl:1 Service Template Version 1.01
+    [[renderer renderingControl] SetVolumeDBWithInstanceID:UPNP_DEFAULT_INSTANCE_ID Channel:channel DesiredVolume:[NSString stringWithFormat:@"%f", volDB]];        // p. 36 - RenderingControl:1 Service Template Version 1.01
     
-    return 0;
+    return UPNP_Error_OK;
 }
 
 // get volume DB for channel
@@ -670,7 +614,7 @@ error code:
  error code:
  nil  no renderer
  */
-- (NSString *)getVolumeDBForChannel: (NSString *)channel
+- (NSNumber *)getVolumeDBForChannel: (NSString *)channel
 {
     if (renderer == nil)   // no renderer
     {
@@ -684,7 +628,7 @@ error code:
     
     [[renderer renderingControl] GetVolumeDBWithInstanceID:UPNP_DEFAULT_INSTANCE_ID Channel:channel OutCurrentVolume:outVolDB];      // p. 36 - RenderingControl:1 Service Template Version 1.01
     
-    return [outVolDB copy];
+    return [NSNumber numberWithFloat:[outVolDB floatValue]];
 }
 
 // get volume DB range for channel
@@ -692,7 +636,7 @@ error code:
  error code:
  nil  no renderer
  */
-- (NSString *)getVolumeDBRangeForChannel: (NSString *)channel
+- (NSDictionary *)getVolumeDBRangeForChannel: (NSString *)channel
 {
     if (renderer == nil)   // no renderer
     {
@@ -707,7 +651,10 @@ error code:
     
     [[renderer renderingControl] GetVolumeDBRangeWithInstanceID:UPNP_DEFAULT_INSTANCE_ID Channel:channel OutMinValue:outVolDBmin OutMaxValue:outVolDBmax];       // p. 37 - RenderingControl:1 Service Template Version 1.01
     
-    return [NSString stringWithFormat:@"%@ - %@", outVolDBmin, outVolDBmax];
+    return [NSDictionary dictionaryWithObjectsAndKeys:
+            [NSNumber numberWithFloat:[outVolDBmin floatValue]], UPNP_KEY_VOLUME_DB_MIN,
+            [NSNumber numberWithFloat:[outVolDBmax floatValue]], UPNP_KEY_VOLUME_DB_MAX,
+            nil];
 }
 
 #pragma mark - helper functions
@@ -715,7 +662,10 @@ error code:
 - (void)lazyObserverAttachRenderingControlService
 {
     if ([[renderer renderingControlService] isObserver:(BasicUPnPServiceObserver *)self] == NO)
+    {
+        NSLog(@"!!!! lazyObserverAttachRenderingControlService %@ !!!", self);
         [[renderer renderingControlService] addObserver:(BasicUPnPServiceObserver *)self];
+    }
 }
 
 
@@ -730,27 +680,31 @@ error code:
     
     if (sender == [renderer avTransportService])
     {
-        NSString *newState = [events objectForKey:@"TransportStatus"];
+        NSString *newState = [events objectForKey:UPNP_KEY_TRANSPORT_STATUS];
         
-        if ([newState isEqualToString:@"ERROR_OCCURRED"])
+        if ([newState isEqualToString:UPNP_STATE_ERROR_OCCURRED])
         {
+            // TODO: notify client code about error
             NSLog(@"Can not play item!");
         }
-        
-        newState = [events objectForKey:@"TransportState"];
-        
-        if ([newState isEqualToString:@"STOPPED"])
-        {
-            NSLog(@"Track stopped!");
-        }
+ 
+// does not work reliable:
+//        newState = [events objectForKey:UPNP_KEY_TRANSPORT_STATE];
+//        
+//        if ([newState isEqualToString:UPNP_STATE_STOPPED])
+//        {
+//            NSLog(@"Track stopped!");
+//        }
     }
     
-    if (sender == [renderer renderingControlService])
-    {
-        NSString *state = [events objectForKey:@"Mute"];
-     
-        NSLog(@"Mute-State: %@", state);
-    }
+
+// not used:
+//    if (sender == [renderer renderingControlService])
+//    {
+//        NSString *state = [events objectForKey:@"Mute"];
+//     
+//        NSLog(@"Mute-State: %@", state);
+//    }
 }
 
 
@@ -771,11 +725,11 @@ error code:
     }
     
     BasicUPnPService *serv = [(BasicUPnPDevice *)renderer getServiceForType:URN_SERVICE_RENDERING_CONTROL_1];
-    StateVariableRange *range = [serv.stateVariables objectForKey:@"Volume"];
+    StateVariableRange *range = [serv.stateVariables objectForKey:UPNP_KEY_VOLUME];
     
     return [NSDictionary dictionaryWithObjectsAndKeys:
-            [NSNumber numberWithInt:range.min], @"VolumeMin",
-            [NSNumber numberWithInt:range.max], @"VolumeMax",
+            [NSNumber numberWithInt:range.min], UPNP_KEY_VOLUME_MIN,
+            [NSNumber numberWithInt:range.max], UPNP_KEY_VOLUME_MAX,
             nil];
 }
 
@@ -792,7 +746,7 @@ error code:
     }
     
     BasicUPnPService *serv = [(BasicUPnPDevice *)renderer getServiceForType:URN_SERVICE_RENDERING_CONTROL_1];
-    StateVariableList *list = [serv.stateVariables objectForKey:@"A_ARG_TYPE_Channel"];
+    StateVariableList *list = [serv.stateVariables objectForKey:UPNP_KEY_A_ARG_TYPE_CHANNEL];
     
     return list.list;
 }
@@ -810,11 +764,11 @@ error code:
     }
     
     BasicUPnPService *serv = [(BasicUPnPDevice *)renderer getServiceForType:URN_SERVICE_RENDERING_CONTROL_1];
-    StateVariableRange *range = [serv.stateVariables objectForKey:@"VolumeDB"];
+    StateVariableRange *range = [serv.stateVariables objectForKey:UPNP_KEY_VOLUME_DB];
     
     return [NSDictionary dictionaryWithObjectsAndKeys:
-            [NSNumber numberWithInt:range.min],           @"VolumeDBMin",
-            [NSNumber numberWithInt:range.max],           @"VolumeDBMax",
+            [NSNumber numberWithInt:range.min],           UPNP_KEY_VOLUME_DB_MIN,
+            [NSNumber numberWithInt:range.max],           UPNP_KEY_VOLUME_DB_MAX,
             nil];
 }
 

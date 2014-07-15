@@ -11,11 +11,49 @@
 #import "MediaRenderer1Device.h"
 
 
+
 #define URN_SERVICE_RENDERING_CONTROL_1     @"urn:schemas-upnp-org:service:RenderingControl:1"
 #define URN_SERVICE_CONTENT_DIRECTORY_1     @"urn:schemas-upnp-org:service:ContentDirectory:1"
 #define URN_SERVICE_AVTRANSPORT_1           @"urn:schemas-upnp-org:service:AVTransport:1"
 
-#define UPNP_DEFAULT_INSTANCE_ID  @"0"
+#define UPNP_DEFAULT_INSTANCE_ID    @"0"
+#define UPNP_DEFAULT_ROOT_ID        @"0"
+
+#define UPNP_DEFAULT_CONTENT_BROWSEFLAG              @"BrowseDirectChildren"
+#define UPNP_DEFAULT_METADAT_BROWSEFLAG              @"BrowseMetadata"
+#define UPNP_DEFAULT_BROWSE_FILTER                   @"*"
+#define UPNP_DEFAULT_BROWSE_STARTINGINDEX            @"0"
+#define UPNP_DEFAULT_CONTENT_BROWSE_REQUESTEDCOUNT   @"0"
+#define UPNP_DEFAULT_METADATA_BROWSE_REQUESTEDCOUNT  @"1"
+#define UPNP_DEFAULT_BROWSE_SORTCRITERIA             @"+dc:title"
+
+#define UPNP_DEFAULT_PLAY_MODE   @"NORMAL"
+#define UPNP_DEFAULT_PLAY_SPEED  @"1"
+
+#define UPNP_KEY_CURRENT_TRACK      @"currentTrack"
+#define UPNP_KEY_TRACK_DURATION     @"trackDuration"
+#define UPNP_KEY_TRACK_METADATA     @"trackMetaData"
+#define UPNP_KEY_TRACK_URI          @"trackURI"
+#define UPNP_KEY_REL_TIME           @"relTime"
+#define UPNP_KEY_ABS_TIME           @"absTime"
+#define UPNP_KEY_REL_COUNT          @"relCount"
+#define UPNP_KEY_ABS_COUNT          @"absCount"
+#define UPNP_KEY_ITEM_OBJECT        @"MediaServer1ItemObject"
+
+#define UPNP_KEY_VOLUME         @"Volume"
+#define UPNP_KEY_VOLUME_MIN     @"VolumeMin"
+#define UPNP_KEY_VOLUME_MAX     @"VolumeMax"
+
+#define UPNP_KEY_VOLUME_DB         @"VolumeDB"
+#define UPNP_KEY_VOLUME_DB_MIN     @"VolumeDBMin"
+#define UPNP_KEY_VOLUME_DB_MAX     @"VolumeDBMax"
+
+#define UPNP_KEY_A_ARG_TYPE_CHANNEL     @"A_ARG_TYPE_Channel"
+
+#define UPNP_KEY_TRANSPORT_STATUS   @"TransportStatus"
+#define UPNP_KEY_TRANSPORT_STATE    @"TransportState"
+#define UPNP_STATE_ERROR_OCCURRED   @"ERROR_OCCURRED"
+#define UPNP_STATE_STOPPED          @"STOPPED"
 
 
 
@@ -23,6 +61,20 @@ typedef NS_ENUM(NSInteger, UPNPRendererType)
 {
     UPNPRendererType_Generic,
     UPNPRendererType_Sonos
+};
+
+typedef NS_ENUM(NSInteger, UPNP_Error)
+{
+    UPNP_Error_OK,
+    UPNP_Error_NoRendererServer,
+    UPNP_Error_UseOtherFunction,
+    UPNP_Error_NoUriForItem,
+    UPNP_Error_FalseProtocolType,
+    UPNP_Error_RendererError,
+    UPNP_Error_NoUriForFolder,
+    
+    UPNP_Error_Sonos_NoMetaData,
+    UPNP_Error_Sonos_NoQueueUri
 };
 
 
@@ -34,7 +86,7 @@ typedef NS_ENUM(NSInteger, UPNPRendererType)
     MediaRenderer1Device *renderer;
 }
 
-
+// TODO: move to UI layer, not needed here
 @property (nonatomic, strong) MediaServer1BasicObject *currentBasicObject;
 
 
@@ -43,12 +95,8 @@ typedef NS_ENUM(NSInteger, UPNPRendererType)
 
 - (instancetype)initWithRenderer: (MediaRenderer1Device *)rend andServer: (MediaServer1Device *)serv;
 
-/*
- return:
- 0  generic
- 1  sonos
- */
-- (int)deviceType: (BasicUPnPDevice *)device;
+// TODO: move to category on BasicUPnPDevice
++ (UPNPRendererType)deviceType: (BasicUPnPDevice *)device;
 
 
 
@@ -60,6 +108,7 @@ typedef NS_ENUM(NSInteger, UPNPRendererType)
 // upnpx-Tutorial: https://code.google.com/p/upnpx/wiki/tutorial
 
 // get the folder/file hierarchy
+// rootID = selectedObject.objectID or "0" for hierarchy root
 - (NSArray *)browseContentForRootID: (NSString *)rootid;
 
 
@@ -72,67 +121,30 @@ typedef NS_ENUM(NSInteger, UPNPRendererType)
 // upnpx-Tutorial: https://code.google.com/p/upnpx/wiki/tutorial
 
 // play an item
-/*
- error code:
- 1   no renderer or server
- 2   use other function -> - (int)playPlaylist: (MediaServer1ContainerObject *)object
- 3   no uri for item
- 4   false protocol type for uri
- */
-- (int)play: (MediaServer1BasicObject *)item;
+- (UPNP_Error)play: (MediaServer1BasicObject *)item;
 
 // play a container (folder/playlist)
-/*
- error code:
- 1   no renderer or server
- 2   render can not play object with this uri
- 3   no uri for folder
- */
-- (int)playFolderPlaylist: (MediaServer1ContainerObject *)object;
+- (UPNP_Error)playFolderPlaylist: (MediaServer1ContainerObject *)object;
 
 // if pause -> replay
-/*
- error code:
- 1  no renderer
- */
-- (int)replay;
+- (UPNP_Error)replay;
 
 // stop
-/*
- error code:
- 1  no renderer
- */
-- (int)stop;
+- (UPNP_Error)stop;
 
 // pause
-/*
- error code:
- 1  no renderer
- */
-- (int)pause;
+- (UPNP_Error)pause;
 
 // next (works only with playlist/folder)
-/*
- error code:
- 1  no renderer
- */
-- (int)next;
+- (UPNP_Error)next;
 
 // previous (works only with playlist/folder)
-/*
- error code:
- 1  no renderer
- */
-- (int)previous;
+- (UPNP_Error)previous;
 
 // seek
 // mode: p. 10 & p. 15 - AVTransport:1 Service Template Version 1.01    example: @"REL_TIME"
 // target: p. 16 - AVTransport:1 Service Template Version 1.01
-/*
- error code:
- 1  no renderer
- */
-- (int)seekWithMode: (NSString *)mode andTarget: (NSString *)target;
+- (UPNP_Error)seekWithMode: (NSString *)mode andTarget: (NSString *)target;
 
 // get position and track info
 /*
@@ -156,11 +168,13 @@ typedef NS_ENUM(NSInteger, UPNPRendererType)
 
 #pragma mark - helper functions
 
+// TODO: move to helper or NSString category
+
 // converts a time string (01:45:33) into a float value
-- (int)timeStringIntoInt: (NSString *)timeString;
++ (int)timeStringIntoInt: (NSString *)timeString;
 
 // converts a float value into a time string (01:45:33)
-- (NSString *)intIntoTimeString: (int)value;
++ (NSString *)intIntoTimeString: (int)value;
 
 
 
@@ -171,69 +185,54 @@ typedef NS_ENUM(NSInteger, UPNPRendererType)
 // http://upnp.org/specs/av/av1/
 // upnpx-Tutorial: https://code.google.com/p/upnpx/wiki/tutorial
 
+// Default channel string: @"Master"
 
 // set mute for channel
-/*
- error code:
- 1  no renderer
- */
-- (int)setMute: (NSString *)mut forChannel: (NSString *)channel;
+- (UPNP_Error)setMute: (BOOL)mute forChannel: (NSString *)channel;
 
 // get mute for channel
 /*
  error code:
  nil  no renderer
  */
-- (NSString *)getMuteForChannel: (NSString *)channel;
+- (NSNumber *)getMuteForChannel: (NSString *)channel;
 
 // set volume for channel
-/*
- error code:
- 1  no renderer
- */
-- (int)setVolume: (NSString *)vol forChannel: (NSString *)channel;
+- (UPNP_Error)setVolume: (NSUInteger)vol forChannel: (NSString *)channel;
 
 // get volume for channel
 /*
  error code:
  nil  no renderer
  */
-- (NSString *)getVolumeForChannel: (NSString *)channel;
+- (NSNumber *)getVolumeForChannel: (NSString *)channel;
 
 // set brightness
-/*
- error code:
- 1  no renderer
- */
-- (int)setBrightness: (NSString *)brigh;
+- (UPNP_Error)setBrightness: (NSUInteger)brigh;
 
 // get brightness
 /*
  error code:
  nil  no renderer
  */
-- (NSString *)getBrightness;
+- (NSNumber *)getBrightness;
 
 // set volume DB for channel
-/*
- error code:
- 1  no renderer
- */
-- (int)setVolumeDB: (NSString *)volDB forChannel: (NSString *)channel;
+- (UPNP_Error)setVolumeDB: (float)volDB forChannel: (NSString *)channel;
 
 // get volume DB for channel
 /*
  error code:
  nil  no renderer
  */
-- (NSString *)getVolumeDBForChannel: (NSString *)channel;
+- (NSNumber *)getVolumeDBForChannel: (NSString *)channel;
 
 // get volume DB range for channel
 /*
  error code:
  nil  no renderer
  */
-- (NSString *)getVolumeDBRangeForChannel: (NSString *)channel;
+- (NSDictionary *)getVolumeDBRangeForChannel: (NSString *)channel;
 
 
 
@@ -265,6 +264,8 @@ typedef NS_ENUM(NSInteger, UPNPRendererType)
 
 #pragma mark -
 #pragma mark - ActionList
+
+// Valid URNs: URN_SERVICE_RENDERING_CONTROL_1, URN_SERVICE_CONTENT_DIRECTORY_1, URN_SERVICE_AVTRANSPORT_1
 
 // get all available render actions for a urn
 - (NSArray *)getAvailableRenderActionsForUrn: (NSString *)urn;

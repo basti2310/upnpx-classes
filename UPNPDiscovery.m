@@ -96,7 +96,7 @@
 
 // search for DMS and DMR
 // https://code.google.com/p/upnpx/wiki/TutorialDescription
-- (void)searchForRendererAndServer
+- (void)filterRenderersAndServers
 {
     NSMutableArray *servers = [[NSMutableArray alloc] init];
     NSMutableArray *renderer = [[NSMutableArray alloc] init];
@@ -127,8 +127,8 @@
 
 - (void)UPnPDBUpdated:(UPnPDB *)sender
 {
-    NSLog(@"number of devices: %d", self.upnpDevices.count);
-    [self searchForRendererAndServer];
+    NSLog(@"number of devices: %d", _upnpDevices.count);
+    [self filterRenderersAndServers];
 }
 
 - (void)UPnPDBWillUpdate:(UPnPDB *)sender

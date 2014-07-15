@@ -11,45 +11,23 @@
 @interface SonosUPNPController : UPNPController
 
 
-
 #pragma mark -
 #pragma mark - AVTransport
 
 // play radio
-/*
- error code:
- 1   no renderer or server
- 2   render can not play object with this uri
- 3   no uri for item
- 4   not meta data for radio
- */
-- (int)playRadio: (MediaServer1ItemObject *)item;
+- (UPNP_Error)playRadio: (MediaServer1ItemObject *)item;
 
 // add item to queue and play the item
-/*
- error code:
- 1   no renderer or server
- 2   render can not play object with this uri
- 3   no uri for item
- 4   no uri for queue
- */
-- (int)playItemWithQueue: (MediaServer1BasicObject *)item;
+- (UPNP_Error)playItemWithQueue: (MediaServer1BasicObject *)item;
 
 // add playlist/folder to queue and play the playlist/folder
-/*
- error code:
- 1   no renderer or server
- 2   render can not play object with this uri
- 3   no uri for folder
- 4   no uri for queue
- */
-- (int)playPlaylistOrQueue: (MediaServer1ContainerObject *)container;
+- (UPNP_Error)playPlaylistOrQueue: (MediaServer1ContainerObject *)container;
 
 
 #pragma mark - helper functions
 
 // returns YES, if item is a radio
-- (BOOL)isObjectRadio: (MediaServer1BasicObject *)object;
++ (BOOL)canPlayRadio: (MediaServer1BasicObject *)object;
 
 
 
