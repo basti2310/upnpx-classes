@@ -24,10 +24,8 @@
 @property (nonatomic, readonly) NSArray *upnpRenderers;
 
 
-- (instancetype)init;
-
-// start searching for devices and save them into upnpDevices
-- (void)startUPnPDeviceSearch;
+// Returns the shared, started instance of UPNPDiscovery.
++ (instancetype)instance;
 
 // refresh the arry with the devices
 - (void)refreshUPnPDeviceSearch;

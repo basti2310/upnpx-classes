@@ -11,6 +11,7 @@
 @interface SonosUPNPController : UPNPController
 
 
+
 #pragma mark -
 #pragma mark - AVTransport
 
@@ -29,18 +30,20 @@
  error code:
  1   no renderer or server
  2   render can not play object with this uri
- 3   no uri for folder
+ 3   no uri for item
+ 4   no uri for queue
  */
-- (int)play: (MediaServer1BasicObject *)item withQueueUri: (NSString *)queueUri;
+- (int)playItemWithQueue: (MediaServer1BasicObject *)item;
 
 // add playlist/folder to queue and play the playlist/folder
 /*
  error code:
  1   no renderer or server
  2   render can not play object with this uri
- 3   no uri for queue
+ 3   no uri for folder
+ 4   no uri for queue
  */
-- (int)playPlaylistOrQueue: (MediaServer1ContainerObject *)container withQueueUri: (NSString *)queueUri;
+- (int)playPlaylistOrQueue: (MediaServer1ContainerObject *)container;
 
 
 #pragma mark - helper functions
@@ -60,12 +63,6 @@
  */
 - (NSString *)browseMetaDataForRadioWithMediaItem: (MediaServer1ItemObject *)mediaItem;
 
-// find the uri for the queue
-/*
- error code:
- nil    no queue or uri for queue
- */
-- (NSArray *)getQueueOfMediaDirectoryOnServerWithRootID: (NSString *)rootid;
 
 
 @end

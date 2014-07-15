@@ -30,6 +30,7 @@
     {
         queueUris = [NSMutableArray new];
         
+        [self getQueueOfMediaDirectoryOnServerWithRootID:@"0"];
     }
     return self;
 }
@@ -83,14 +84,16 @@
     return 0;
 }
 
+
 // add item to queue and play the item
 /*
  error code:
  1   no renderer or server
  2   render can not play object with this uri
- 3   no uri for queue
+ 3   no uri for item
+ 4   no uri for queue
  */
-- (int)play: (MediaServer1BasicObject *)item withQueueUri: (NSString *)queueUri
+- (int)playItemWithQueue: (MediaServer1BasicObject *)item
 {
     if (renderer == nil || server == nil)
     {
@@ -115,6 +118,11 @@
         return 3;
     }
     
+    if (queueUris.count <= 0)   // no queue uri
+    {
+        return 4;
+    }
+    
     NSString *firstTrack = @"1";            // place the track as the first in the queue
     NSString *nextTrack = @"2";             // next track is track nr 2
     NSString *trackNumberInQueue = @"1";    // go to track nr. 1 in queue
@@ -123,7 +131,7 @@
     [[renderer avTransport] AddURIToQueueWithInstanceID:UPNP_DEFAULT_INSTANCE_ID URI:uri MetaData:[metaData XMLEscape] DesiredFirstTrackNumberEnqueued:firstTrack EnqueueAsNext:nextTrack];
     
     // play the current queue
-    [[renderer avTransport] SetAVTransportURIWithInstanceID:UPNP_DEFAULT_INSTANCE_ID CurrentURI:queueUri CurrentURIMetaData:@""];
+    [[renderer avTransport] SetAVTransportURIWithInstanceID:UPNP_DEFAULT_INSTANCE_ID CurrentURI:queueUris.firstObject CurrentURIMetaData:@""];
     
     // seek to the track
     [[renderer avTransport] SeekWithInstanceID:UPNP_DEFAULT_INSTANCE_ID Unit:@"TRACK_NR" Target:trackNumberInQueue];
@@ -140,8 +148,9 @@
  1   no renderer or server
  2   render can not play object with this uri
  3   no uri for folder
+ 4   no uri for queue
  */
-- (int)playPlaylistOrQueue: (MediaServer1ContainerObject *)container withQueueUri: (NSString *)queueUri
+- (int)playPlaylistOrQueue: (MediaServer1ContainerObject *)container
 {
     if (renderer == nil || server == nil)
     {
@@ -166,6 +175,11 @@
         return 3;
     }
     
+    if (queueUris.count <= 0)   // no queue uri
+    {
+        return 4;
+    }
+    
     NSString *firstTrack = @"0";            // place the track as the first in the queue
     NSString *nextTrack = @"1";             // next track is track nr 2
     NSString *trackNumberInQueue = @"1";    // go to track nr. 1 in queue
@@ -174,7 +188,7 @@
     [[renderer avTransport] AddURIToQueueWithInstanceID:UPNP_DEFAULT_INSTANCE_ID URI:uri MetaData:[metaData XMLEscape] DesiredFirstTrackNumberEnqueued:firstTrack EnqueueAsNext:nextTrack];
     
     // play the current queue
-    [[renderer avTransport] SetAVTransportURIWithInstanceID:UPNP_DEFAULT_INSTANCE_ID CurrentURI:queueUri CurrentURIMetaData:@""];
+    [[renderer avTransport] SetAVTransportURIWithInstanceID:UPNP_DEFAULT_INSTANCE_ID CurrentURI:queueUris.firstObject CurrentURIMetaData:@""];
     
     // seek to the track
     [[renderer avTransport] SeekWithInstanceID:UPNP_DEFAULT_INSTANCE_ID Unit:@"TRACK_NR" Target:trackNumberInQueue];
@@ -251,7 +265,7 @@
  error code:
  nil    no queue or uri for queue
  */
-- (NSArray *)getQueueOfMediaDirectoryOnServerWithRootID: (NSString *)rootid
+- (void)getQueueOfMediaDirectoryOnServerWithRootID: (NSString *)rootid
 {
     NSMutableArray *queueContainer = [NSMutableArray new];
     
@@ -299,8 +313,6 @@
             [self getQueueOfMediaDirectoryOnServerWithRootID:container.objectID];
         }
     }
-    
-    return queueUris;
 }
 
 

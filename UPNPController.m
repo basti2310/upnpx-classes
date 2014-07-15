@@ -46,6 +46,23 @@
     return self;
 }
 
+/*
+ return:
+ 0  generic
+ 1  sonos
+ */
+- (int)deviceType: (BasicUPnPDevice *)device
+{
+    NSRange range = [device.manufacturer rangeOfString:@"sonos" options:NSCaseInsensitiveSearch];
+    
+    if(range.location != NSNotFound)
+    {
+        return 1;
+    }
+    
+    return 0;
+}
+
 
 #pragma mark -
 #pragma mark - Content Directory
@@ -63,9 +80,7 @@
     
     // p. 22 - ContentDirectory:1 Service Template Version 1.01
     [[server contentDirectory] BrowseWithObjectID:rootid BrowseFlag:@"BrowseDirectChildren" Filter:@"*" StartingIndex:@"0" RequestedCount:@"0" SortCriteria:@"+dc:title" OutResult:outResult OutNumberReturned:outNumberReturned OutTotalMatches:outTotalMatches OutUpdateID:outUpdateID];
-    
-    NSLog(@"// meta data: %@", outResult);
-    
+        
     // The collections are returned as DIDL Xml in the string 'outResult'
     // upnpx provide a helper class to parse the DIDL Xml in usable MediaServer1BasicObject object
     // (MediaServer1ContainerObject and MediaServer1ItemObject)

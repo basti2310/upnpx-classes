@@ -18,6 +18,15 @@
 #define UPNP_DEFAULT_INSTANCE_ID  @"0"
 
 
+
+typedef NS_ENUM(NSInteger, UPNPRendererType)
+{
+    UPNPRendererType_Generic,
+    UPNPRendererType_Sonos
+};
+
+
+
 @interface UPNPController : NSObject
 {
     @protected
@@ -33,6 +42,13 @@
 #pragma mark - Initialisation
 
 - (instancetype)initWithRenderer: (MediaRenderer1Device *)rend andServer: (MediaServer1Device *)serv;
+
+/*
+ return:
+ 0  generic
+ 1  sonos
+ */
+- (int)deviceType: (BasicUPnPDevice *)device;
 
 
 

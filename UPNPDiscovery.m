@@ -26,19 +26,21 @@
 @synthesize upnpServers = _upnpServers;
 @synthesize upnpRenderers = _upnpRenderers;
 
-- (instancetype)init
+
++ (instancetype)instance
 {
-    self = [super init];
-    if (self)
-    {
-        self.db = nil;
-        _upnpDevices = nil;
-        _upnpRenderers = [NSMutableArray new];
-        _upnpServers = [NSMutableArray new];
-    }
+    static UPNPDiscovery *INSTANCE = nil;
     
-    return self;
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        
+        INSTANCE = [UPNPDiscovery new];
+        [INSTANCE startUPnPDeviceSearch];
+    });
+    
+    return INSTANCE;
 }
+
 
 // start searching for devices and save them into upnpDevices
 // https://code.google.com/p/upnpx/wiki/TutorialDiscovery
