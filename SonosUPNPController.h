@@ -43,4 +43,11 @@
 
 
 
+#pragma mark -
+#pragma mark - AlbumArt
+
+// gets the correct url for albumArt
+- (NSString *)getURLForAlbumArt: (NSString *)albumArt;
+
+
 @end

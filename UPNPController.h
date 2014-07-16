@@ -73,6 +73,7 @@ typedef NS_ENUM(NSInteger, UPNP_Error)
     UPNP_Error_RendererError,
     UPNP_Error_NoUriForFolder,
     
+    // for sonos
     UPNP_Error_Sonos_NoMetaData,
     UPNP_Error_Sonos_NoQueueUri
 };
@@ -97,6 +98,13 @@ typedef NS_ENUM(NSInteger, UPNP_Error)
 
 // TODO: move to category on BasicUPnPDevice
 + (UPNPRendererType)deviceType: (BasicUPnPDevice *)device;
+
+
+
+#pragma mark -
+#pragma mark - error handling
+
++ (void)upnpErrorLog: (UPNP_Error)error;
 
 
 

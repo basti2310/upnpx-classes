@@ -29,8 +29,8 @@
     self = [super init];
     if (self)
     {
-        NSParameterAssert(rend);
-        NSParameterAssert(serv);
+        //NSParameterAssert(rend);
+        //NSParameterAssert(serv);
         
         server = serv;
         renderer = rend;
@@ -64,6 +64,40 @@
     
     return UPNPRendererType_Generic;
 }
+
+
+
+#pragma mark -
+#pragma mark - error handling
+
++ (void)upnpErrorLog: (UPNP_Error)error
+{
+    if (error == UPNP_Error_NoRendererServer)
+    {
+        NSLog(@"no renderer or server");
+    }
+    else if (error == UPNP_Error_UseOtherFunction)
+    {
+        NSLog(@"use other function");
+    }
+    else if (error == UPNP_Error_NoUriForItem)
+    {
+        NSLog(@"no uri for item");
+    }
+    else if (error == UPNP_Error_FalseProtocolType)
+    {
+        NSLog(@"false protocol type");
+    }
+    else if (error == UPNP_Error_RendererError)
+    {
+        NSLog(@"renderer can not play item");
+    }
+    else if (error == UPNP_Error_NoUriForFolder)
+    {
+        NSLog(@"no uri for folder");
+    }
+}
+
 
 
 #pragma mark -
@@ -593,7 +627,6 @@
 }
 
 // set volume DB for channel
-// TODO: check how many decimal places are needed
 - (UPNP_Error)setVolumeDB: (float)volDB forChannel: (NSString *)channel
 {
     if (renderer == nil)   // no renderer
@@ -604,7 +637,8 @@
     // Lazy Observer attach
     [self lazyObserverAttachRenderingControlService];
     
-    [[renderer renderingControl] SetVolumeDBWithInstanceID:UPNP_DEFAULT_INSTANCE_ID Channel:channel DesiredVolume:[NSString stringWithFormat:@"%f", volDB]];        // p. 36 - RenderingControl:1 Service Template Version 1.01
+    // !!!: check how many decimal places are needed -> vendor defined
+    [[renderer renderingControl] SetVolumeDBWithInstanceID:UPNP_DEFAULT_INSTANCE_ID Channel:channel DesiredVolume:[NSString stringWithFormat:@"%.2f", volDB]];        // p. 36 - RenderingControl:1 Service Template Version 1.01
     
     return UPNP_Error_OK;
 }

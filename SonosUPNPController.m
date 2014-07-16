@@ -16,8 +16,6 @@
 #define SONOS_RADIO_PROTOCOLS           @[@"x-sonosapi-radio:", @"x-sonosapi-stream:"]
 
 
-// TODO: find albumArt url
-
 @implementation SonosUPNPController
 {
     NSMutableArray *queueUris;
@@ -35,6 +33,26 @@
     }
     return self;
 }
+
+
+
+#pragma mark -
+#pragma mark - error handling
+
++ (void)upnpErrorLog: (UPNP_Error)error
+{
+    [super upnpErrorLog:error];
+    
+    if (error == UPNP_Error_Sonos_NoMetaData)
+    {
+        NSLog(@"no meta data for item");
+    }
+    else if (error == UPNP_Error_Sonos_NoQueueUri)
+    {
+        NSLog(@"no uri for queue");
+    }
+}
+
 
 
 #pragma mark -
@@ -297,6 +315,20 @@
             [self getQueueOfMediaDirectoryOnServerWithRootID:container.objectID];
         }
     }
+}
+
+
+
+#pragma mark -
+#pragma mark - AlbumArt
+
+// gets the correct url for albumArt
+- (NSString *)getURLForAlbumArt: (NSString *)albumArt
+{
+    NSString *alrbumArtDecoded = (__bridge_transfer NSString *)CFURLCreateStringByReplacingPercentEscapesUsingEncoding(NULL, (CFStringRef)albumArt, CFSTR(""), kCFStringEncodingUTF8);
+    NSString *url = [NSString stringWithFormat:@"http://%@:%@%@", renderer.baseURL.host, renderer.baseURL.port, alrbumArtDecoded];
+    
+    return url;
 }
 
 
